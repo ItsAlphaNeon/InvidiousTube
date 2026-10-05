@@ -164,6 +164,9 @@ function PlaybackSection() {
         <Row title="Caption language" desc="Preferred subtitle language code (e.g. en, de, ja)">
           <input className="text-field settings-small-input" value={s.captionLang} onChange={(e) => s.set({ captionLang: e.target.value.trim() })} />
         </Row>
+        <Row title="Hide Shorts" desc="Keep YouTube Shorts out of your home feed, subscriptions, search, recommendations and autoplay">
+          <Toggle on={s.hideShorts} onChange={(v) => s.set({ hideShorts: v })} />
+        </Row>
         <Row title="Inline playback" desc="Preview videos when hovering over thumbnails">
           <Toggle on={s.hoverPreview} onChange={(v) => s.set({ hoverPreview: v })} />
         </Row>

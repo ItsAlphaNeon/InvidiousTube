@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/invidious';
 import { toCard, type CardVideo } from '../components/cards/model';
+import { useShortsFilter } from '../hooks/useShortsFilter';
 import { useLibrary } from '../stores/library';
 import { usePlayerSession } from '../stores/player';
 import { useSettings } from '../stores/settings';
@@ -50,6 +51,8 @@ export function useQueueNavigation() {
   const notInterested = useLibrary((s) => s.notInterested);
   const navigate = useNavigate();
 
+  const { items: recs } = useShortsFilter(useMemo(() => (data?.recommendedVideos || []).filter((v) => !notInterested.includes(v.videoId)), [data, notInterested]));
+
   const next: CardVideo | null = useMemo(() => {
     if (playlist) {
       const i = playlist.index + 1;
@@ -57,9 +60,8 @@ export function useQueueNavigation() {
       if (playlist.loop && playlist.videos.length) return toCard(playlist.videos[0]);
       return null;
     }
-    const recs = (data?.recommendedVideos || []).filter((v) => !notInterested.includes(v.videoId));
     return recs[0] ? toCard(recs[0]) : null;
-  }, [playlist, data, notInterested]);
+  }, [playlist, recs]);
 
   const prev: CardVideo | null = useMemo(() => {
     if (playlist && playlist.index > 0) return toCard(playlist.videos[playlist.index - 1]);

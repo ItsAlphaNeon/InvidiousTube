@@ -9,6 +9,7 @@ A self-hosted frontend for [Invidious](https://invidious.io) that looks and beha
 - **YouTube 2024 UI**: masthead with search suggestions & voice search, responsive guide (full / mini / drawer), chip bars, rich grid with hover previews and watch-progress bars, dark & light themes.
 - **Custom player** (Shaka Player, DASH through invidious-companion): up to 4K/8K quality menu, playback-speed panel, captions, chapters with segmented seek bar, storyboard previews, ambient mode, theater mode, miniplayer, full screen, autoplay countdown & end screen, stats for nerds, sleep timer, loop, all of YouTube's keyboard shortcuts.
 - **Watch page**: metadata row, like/dislike (with Return YouTube Dislike counts), share, download, save to playlist, expandable description with chapters, threaded comments, related videos, playlist panel with loop/shuffle.
+- **Hide Shorts** (on by default): Shorts are filtered out of the home feed, subscriptions, notifications, search, recommendations and autoplay. Invidious' feeds don't mark Shorts, so the server asks `youtube.com/shorts/<id>` for videos of 3 minutes or less and caches the answer.
 - **SponsorBlock**: per-category skip / skip-button / show-only, segments on the seek bar, “Skipped sponsor · Undo” notice.
 - **Accounts – your choice**: works fully logged out (subscriptions, history, Watch later, likes and playlists stored in the browser), or sign in with your Invidious account to sync subscriptions, history and playlists. Local subscriptions can be imported into the account.
 - **Link redirect**: swap `www.youtube.com` / `youtu.be` for your InvidiousTube domain in any YouTube link and it opens here — videos (with timestamps and playlists), Shorts, live, embeds, channels (`/@handle`, `/channel/…`, `/c/…`, `/user/…`), playlists and searches. Pasting a YouTube link into the search box works too, and Settings → Link redirect has a converter and a bookmarklet.
@@ -52,6 +53,7 @@ The script installs Node.js 22 (if needed), copies the app to `/opt/invidioustub
 | `COMPANION_URL` | `http://127.0.0.1:8282` | invidious-companion base URL (without `/companion`) |
 | `ENABLE_SPONSORBLOCK` | `1` | Allow SponsorBlock lookups (sends a 4-char hash prefix to sponsor.ajay.app) |
 | `ENABLE_RYD` | `1` | Allow Return YouTube Dislike lookups |
+| `ENABLE_SHORTS_CHECK` | `1` | Detect Shorts by asking youtube.com (only for videos ≤ 3 min or of unknown length) |
 | `COOKIE_SECURE` | `0` | Set to `1` when serving over HTTPS (marks the login cookie `Secure`) |
 | `IMAGE_CACHE_MB` | `256` | In-memory thumbnail cache size |
 

@@ -74,6 +74,7 @@ INVIDIOUS_URL=${INVIDIOUS_URL}
 COMPANION_URL=${COMPANION_URL}
 ENABLE_SPONSORBLOCK=1
 ENABLE_RYD=1
+ENABLE_SHORTS_CHECK=1
 # Set to 1 if you serve InvidiousTube over HTTPS through a reverse proxy
 COOKIE_SECURE=0
 # In-memory thumbnail cache size

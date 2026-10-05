@@ -41,7 +41,7 @@ export function toCard(v: VideoItem | RecommendedVideo | VideoLite | CardVideo):
   if (typeof anyV.published === 'string') published = Math.floor(Date.parse(anyV.published) / 1000) || undefined;
   if (viewCount === 0 && viewCountText && viewCountText !== '0 views') viewCount = undefined;
   // Newer Invidious trending responses contain zeroed metadata (0 views, length 0, published "now").
-  const incomplete = !anyV.liveNow && !v.lengthSeconds && !viewCount && (!published || Math.abs(Date.now() / 1000 - published) < 600);
+  const incomplete = !anyV.liveNow && !viewCount && (!published || Math.abs(Date.now() / 1000 - published) < 600);
   if (incomplete) {
     viewCount = undefined;
     viewCountText = undefined;

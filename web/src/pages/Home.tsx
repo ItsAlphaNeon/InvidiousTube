@@ -13,6 +13,7 @@ import { useInfiniteTrigger } from '../hooks/useInView';
 import { useLibrary } from '../stores/library';
 import { useSettings } from '../stores/settings';
 import './pages.css';
+import { useShortsFilter } from '../hooks/useShortsFilter';
 
 const TRENDING_MIX: TrendingType[] = ['default', 'music', 'gaming', 'news', 'movies'];
 
@@ -110,6 +111,8 @@ export function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chip, trending.map((q) => q.dataUpdatedAt).join(), feedVideos, hidden, hasSubs, history, watchedIds]);
 
+  const { items: shown } = useShortsFilter(videos);
+
   const canLoadMore = (chip === 'all' || chip === 'subs' || chip === 'recent') && hasSubs && !!feed.hasNextPage;
   const sentinel = useInfiniteTrigger(() => {
     if (canLoadMore && !feed.isFetchingNextPage) feed.fetchNextPage();
@@ -124,9 +127,9 @@ export function Home() {
         }} />
       </div>
       <RichGrid className="has-chips">
-        {loading && !videos.length
+        {loading && !shown.length
           ? Array.from({ length: 16 }, (_, i) => <RichSkeleton key={i} />)
-          : videos.map((v) => <VideoCardGrid key={v.videoId} v={toCard(v)} />)}
+          : shown.map((v) => <VideoCardGrid key={v.videoId} v={toCard(v)} />)}
       </RichGrid>
       {!loading && !videos.length && (
         <div className="page-empty">

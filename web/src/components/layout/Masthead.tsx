@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { timeAgo } from '../../api/format';
 import { videoThumb } from '../../api/images';
@@ -12,6 +12,7 @@ import { toast } from '../../stores/ui';
 import { Avatar } from '../common/Avatar';
 import { Menu, MenuDivider, MenuItem } from '../common/Menu';
 import { SearchBox } from './SearchBox';
+import { useShortsFilter } from '../../hooks/useShortsFilter';
 
 export function Masthead({ onMenu }: { onMenu: () => void }) {
   const narrow = useMediaQuery('(max-width: 656px)');
@@ -84,7 +85,8 @@ function NotificationsButton() {
   const ref = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const feed = useSubscriptionFeed(true);
-  const videos = flattenFeed(feed.data?.pages).slice(0, 20);
+  const all = useMemo(() => flattenFeed(feed.data?.pages).slice(0, 40), [feed.data]);
+  const videos = useShortsFilter(all).items.slice(0, 20);
   const fresh = videos.filter((v) => v.published && Date.now() / 1000 - v.published < 60 * 60 * 24 * 2).length;
   const navigate = useNavigate();
   return (

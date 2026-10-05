@@ -9,6 +9,7 @@ import { Modal } from '../components/common/Modal';
 import { Spinner } from '../components/common/Spinner';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useInfiniteTrigger } from '../hooks/useInView';
+import { useShortsFilter } from '../hooks/useShortsFilter';
 import { Icon } from '../icons';
 import { useLibrary } from '../stores/library';
 import { useSettings } from '../stores/settings';
@@ -117,7 +118,7 @@ export function Search() {
 
   const watched = new Set(history.map((h) => h.videoId));
   const seen = new Set<string>();
-  const items: SearchItem[] = (query.data?.pages.flat() ?? []).filter((it) => {
+  const matched: SearchItem[] = (query.data?.pages.flat() ?? []).filter((it) => {
     const key = it.type === 'video' ? it.videoId : it.type === 'channel' ? it.authorId : it.type === 'playlist' ? it.playlistId : it.title;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -134,6 +135,7 @@ export function Search() {
         return true;
     }
   });
+  const { items } = useShortsFilter(matched);
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);

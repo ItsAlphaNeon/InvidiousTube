@@ -38,6 +38,7 @@ interface SettingsState {
   captionLang: string;
   theater: boolean;
   hoverPreview: boolean;
+  hideShorts: boolean;
   ambientMode: boolean;
   sponsorblock: boolean;
   sbCategories: Record<SBCategory, SBAction>;
@@ -61,6 +62,7 @@ export const useSettings = create<SettingsState>()(
       captionLang: 'en',
       theater: false,
       hoverPreview: true,
+      hideShorts: true,
       ambientMode: true,
       sponsorblock: true,
       sbCategories: {

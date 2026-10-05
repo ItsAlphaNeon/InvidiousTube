@@ -116,7 +116,8 @@ export const api = {
   },
 
   // ---------------------------------------------------------------- extras served by our backend
-  config: () => get<{ sponsorblock: boolean; ryd: boolean }>('/x/config'),
+  config: () => get<{ sponsorblock: boolean; ryd: boolean; shortsCheck?: boolean }>('/x/config'),
+  checkShorts: (ids: string[]) => get<{ shorts: string[]; videos: string[] }>('/x/shorts', { ids: ids.join(',') }),
   localFeed: (ids: string[], page = 1) => get<{ videos: VideoItem[]; hasMore: boolean }>('/x/feed', { ids: ids.join(','), page }),
   sponsorSegments: (id: string) => get<SponsorSegment[]>(`/x/sponsorblock/${id}`),
   ryd: (id: string) => get<{ likes?: number; dislikes?: number; rating?: number; viewCount?: number }>(`/x/ryd/${id}`),

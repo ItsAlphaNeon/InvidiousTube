@@ -16,6 +16,7 @@ import { SubscribeButton } from '../../components/common/SubscribeButton';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useWindowWidth } from '../../hooks/useMediaQuery';
 import { usePlaylistData } from '../../hooks/usePlaylistData';
+import { useShortsFilter } from '../../hooks/useShortsFilter';
 import { Icon, VerifiedBadge } from '../../icons';
 import { PlayerSlot, useVideoDetails } from '../../player/PlayerHost';
 import { toLite, useLibrary } from '../../stores/library';
@@ -276,6 +277,15 @@ function Related({ video }: { video: VideoDetails | null }) {
     enabled: !!video && chip === 'channel',
     staleTime: 10 * 60 * 1000,
   });
+  const recs = (video?.recommendedVideos || []).filter((r) => !notInterested.includes(r.videoId));
+  const rawItems = !video
+    ? []
+    : chip === 'channel'
+      ? (fromChannel.data?.videos || []).filter((x) => x.videoId !== video.videoId).map(toCard)
+      : chip === 'related'
+        ? recs.filter((r) => r.authorId !== video.authorId).map(toCard)
+        : recs.map(toCard);
+  const { items } = useShortsFilter(rawItems);
   if (!video) {
     return (
       <div className="watch-related">
@@ -290,13 +300,6 @@ function Related({ video }: { video: VideoDetails | null }) {
     { id: 'channel', label: `From ${video.author}` },
     { id: 'related', label: 'Related' },
   ];
-  const recs = video.recommendedVideos.filter((r) => !notInterested.includes(r.videoId));
-  const items =
-    chip === 'channel'
-      ? (fromChannel.data?.videos || []).filter((x) => x.videoId !== video.videoId).map(toCard)
-      : chip === 'related'
-        ? recs.filter((r) => r.authorId !== video.authorId).map(toCard)
-        : recs.map(toCard);
   return (
     <div className="watch-related">
       <ChipBar chips={chips} active={chip} onChange={setChip} className="watch-related-chips" />

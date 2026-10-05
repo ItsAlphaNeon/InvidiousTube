@@ -15,6 +15,7 @@ import { Icon, type IconName } from '../icons';
 import { useLibrary } from '../stores/library';
 import { useSettings } from '../stores/settings';
 import './feeds.css';
+import { useShortsFilter } from '../hooks/useShortsFilter';
 
 // ------------------------------------------------------------------ Trending / Explore
 
@@ -38,7 +39,7 @@ export function Trending() {
     staleTime: 30 * 60 * 1000,
   });
   const notInterested = useLibrary((s) => s.notInterested);
-  const videos = (data || []).filter((v) => !notInterested.includes(v.videoId));
+  const { items: videos } = useShortsFilter((data || []).filter((v) => !notInterested.includes(v.videoId)));
   return (
     <div className="feed-page trending-page">
       <div className="page-narrow">
@@ -77,7 +78,8 @@ export function Subscriptions() {
   useDocumentTitle('Subscriptions');
   const { subs } = useSubscriptions();
   const feed = useSubscriptionFeed(true);
-  const videos = useMemo(() => flattenFeed(feed.data?.pages), [feed.data]);
+  const all = useMemo(() => flattenFeed(feed.data?.pages), [feed.data]);
+  const { items: videos } = useShortsFilter(all);
   const sentinel = useInfiniteTrigger(() => {
     if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
   }, !!feed.hasNextPage);
@@ -186,7 +188,8 @@ export function Hashtag() {
   const sentinel = useInfiniteTrigger(() => {
     if (q.hasNextPage && !q.isFetchingNextPage) q.fetchNextPage();
   }, !!q.hasNextPage);
-  const videos = q.data?.pages.flatMap((p) => p.results || []) ?? [];
+  const all = useMemo(() => q.data?.pages.flatMap((p) => p.results || []) ?? [], [q.data]);
+  const { items: videos } = useShortsFilter(all);
   return (
     <div className="feed-page">
       <div className="hashtag-header">

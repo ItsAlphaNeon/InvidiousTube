@@ -14,6 +14,7 @@ const INVIDIOUS_URL = (process.env.INVIDIOUS_URL || 'http://127.0.0.1:3000').rep
 const COMPANION_URL = (process.env.COMPANION_URL || 'http://127.0.0.1:8282').replace(/\/+$/, '').replace(/\/companion$/, '');
 const ENABLE_SPONSORBLOCK = process.env.ENABLE_SPONSORBLOCK !== '0';
 const ENABLE_RYD = process.env.ENABLE_RYD !== '0';
+const ENABLE_SHORTS_CHECK = process.env.ENABLE_SHORTS_CHECK !== '0';
 const COOKIE_SECURE = process.env.COOKIE_SECURE === '1';
 const DIST_DIR = path.resolve(__dirname, '../../web/dist');
 
@@ -230,7 +231,7 @@ app.use(
 // ---------------------------------------------------------------- config
 
 app.get('/x/config', (_req, res) => {
-  res.json({ sponsorblock: ENABLE_SPONSORBLOCK, ryd: ENABLE_RYD });
+  res.json({ sponsorblock: ENABLE_SPONSORBLOCK, ryd: ENABLE_RYD, shortsCheck: ENABLE_SHORTS_CHECK });
 });
 
 // ---------------------------------------------------------------- auth
@@ -324,6 +325,52 @@ app.get('/x/feed', async (req, res) => {
   all.sort((a, b) => (b.published || 0) - (a.published || 0));
   const start = (page - 1) * perPage;
   res.json({ videos: all.slice(start, start + perPage), hasMore: start + perPage < all.length });
+});
+
+// ---------------------------------------------------------------- Shorts detection
+// Invidious' feeds don't mark Shorts. YouTube answers /shorts/<id> with 200 for a Short and a
+// redirect to /watch for a regular video, which is the only reliable signal. Results never change,
+// so they are cached for the life of the process.
+
+const shortsCache = new Map(); // videoId -> boolean
+const SHORTS_CACHE_MAX = 100000;
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36';
+
+async function checkShort(id) {
+  if (shortsCache.has(id)) return shortsCache.get(id);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const r = await fetch(`https://www.youtube.com/shorts/${id}`, {
+      method: 'HEAD',
+      redirect: 'manual',
+      headers: { 'user-agent': UA, 'accept-language': 'en-US,en;q=0.9' },
+      signal: ctrl.signal,
+    });
+    let result = null;
+    if (r.status === 200) result = true;
+    else if (r.status >= 300 && r.status < 400 && /\/watch\?/.test(r.headers.get('location') || '')) result = false;
+    if (result !== null) {
+      if (shortsCache.size >= SHORTS_CACHE_MAX) shortsCache.delete(shortsCache.keys().next().value);
+      shortsCache.set(id, result);
+    }
+    return result;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+app.get('/x/shorts', async (req, res) => {
+  if (!ENABLE_SHORTS_CHECK) return res.json({ shorts: [], videos: [] });
+  const ids = [...new Set(String(req.query.ids || '').split(','))].filter((s) => /^[\w-]{11}$/.test(s)).slice(0, 50);
+  const results = await mapLimit(ids, 12, checkShort);
+  res.set('cache-control', 'private, max-age=86400');
+  res.json({
+    shorts: ids.filter((_, i) => results[i] === true),
+    videos: ids.filter((_, i) => results[i] === false),
+  });
 });
 
 // ---------------------------------------------------------------- SponsorBlock
