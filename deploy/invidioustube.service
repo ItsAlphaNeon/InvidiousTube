@@ -10,7 +10,10 @@ Group=invidioustube
 WorkingDirectory=/opt/invidioustube
 EnvironmentFile=/etc/invidioustube.env
 Environment=NODE_ENV=production
+# Rebuild from SOURCE_DIR when the code changed (runs as root), so "git pull" + reboot is enough
+ExecStartPre=+/bin/bash -c 'exec bash "$${SOURCE_DIR:-/opt/invidioustube}/deploy/build.sh"'
 ExecStart=/usr/bin/node /opt/invidioustube/server/src/index.js
+TimeoutStartSec=900
 Restart=always
 RestartSec=3
 

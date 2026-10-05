@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Rebuilds InvidiousTube from a source checkout and restarts the service.
-#   cd /path/to/InvidiousTube && git pull && sudo ./deploy/update.sh
+# Pulls the latest code and restarts the service (which rebuilds on start).
+# Equivalent to: git pull && sudo systemctl restart invidioustube
 set -euo pipefail
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ "$SRC_DIR" == "/opt/invidioustube" ]]; then
-  echo "Run this from your source checkout (e.g. ~/InvidiousTube), not from /opt/invidioustube." >&2
-  exit 1
-fi
-exec "$SRC_DIR/deploy/install.sh"
+git -C "$SRC_DIR" pull --ff-only || true
+# Reinstall the unit file in case it changed, then restart (ExecStartPre rebuilds)
+install -m 644 "$SRC_DIR/deploy/invidioustube.service" /etc/systemd/system/invidioustube.service
+systemctl daemon-reload
+systemctl restart invidioustube
+systemctl --no-pager --lines=5 status invidioustube || true

@@ -45,19 +45,8 @@ if ! id -u invidioustube >/dev/null 2>&1; then
   useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin invidioustube
 fi
 
-say "Copying application to $APP_DIR"
-mkdir -p "$APP_DIR"
-if command -v rsync >/dev/null 2>&1; then
-  rsync -a --delete --exclude node_modules --exclude .git --exclude 'web/dist' --exclude .env "$SRC_DIR/" "$APP_DIR/"
-else
-  (cd "$SRC_DIR" && tar --exclude=node_modules --exclude=.git --exclude=web/dist --exclude=.env -cf - .) | (cd "$APP_DIR" && tar -xf -)
-fi
-
-say "Installing dependencies and building the frontend"
-cd "$APP_DIR"
-npm ci --no-audit --no-fund || npm install --no-audit --no-fund
-npm run build
-chown -R invidioustube:invidioustube "$APP_DIR"
+say "Building InvidiousTube from $SRC_DIR"
+FORCE_BUILD=1 SOURCE_DIR="$SRC_DIR" AUTO_UPDATE=0 bash "$SRC_DIR/deploy/build.sh"
 
 # ------------------------------------------------------------------ configuration
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -79,11 +68,19 @@ ENABLE_SHORTS_CHECK=1
 COOKIE_SECURE=0
 # In-memory thumbnail cache size
 IMAGE_CACHE_MB=256
+# Git checkout the service rebuilds from at startup (after a git pull, just restart or reboot)
+SOURCE_DIR=${SRC_DIR}
+# Set to 1 to also run "git pull" in SOURCE_DIR on every start
+AUTO_UPDATE=0
 EOF
   chmod 640 "$ENV_FILE"
   chgrp invidioustube "$ENV_FILE"
 else
   echo "Keeping existing $ENV_FILE"
+  if ! grep -q '^SOURCE_DIR=' "$ENV_FILE"; then
+    printf '\n# Git checkout the service rebuilds from at startup (after a git pull, just restart or reboot)\nSOURCE_DIR=%s\n# Set to 1 to also run "git pull" in SOURCE_DIR on every start\nAUTO_UPDATE=0\n' "$SRC_DIR" >> "$ENV_FILE"
+    echo "Added SOURCE_DIR=$SRC_DIR to $ENV_FILE"
+  fi
 fi
 
 # ------------------------------------------------------------------ systemd
@@ -98,4 +95,5 @@ systemctl --no-pager --lines=5 status ${SERVICE} || true
 PORT_NOW=$(grep -E '^PORT=' "$ENV_FILE" | cut -d= -f2)
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 say "Done! Open http://${IP:-<container-ip>}:${PORT_NOW:-8080}"
-echo "Config: $ENV_FILE   Logs: journalctl -u ${SERVICE} -f   Update: git pull && sudo ./deploy/update.sh (from your checkout)"
+echo "Config: $ENV_FILE   Logs: journalctl -u ${SERVICE} -f"
+echo "Updating: git pull in $SRC_DIR, then reboot or 'sudo systemctl restart ${SERVICE}' (it rebuilds on start)."

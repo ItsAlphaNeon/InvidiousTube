@@ -28,3 +28,6 @@ desktop.ini
 .claude/
 .cache/
 coverage/
+
+# Build fingerprint written by deploy/build.sh
+.build-stamp
