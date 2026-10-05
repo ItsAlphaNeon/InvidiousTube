@@ -6,7 +6,7 @@ import { avatarUrl } from '../../api/images';
 import { api } from '../../api/invidious';
 import type { VideoDetails } from '../../api/types';
 import { toCard } from '../../components/cards/model';
-import { CompactSkeleton, VideoCardCompact } from '../../components/cards/VideoCards';
+import { CompactSkeleton, RichSkeleton, VideoCardCompact, VideoCardGrid } from '../../components/cards/VideoCards';
 import { Avatar } from '../../components/common/Avatar';
 import { ChipBar } from '../../components/common/ChipBar';
 import { Menu, MenuItem } from '../../components/common/Menu';
@@ -28,17 +28,15 @@ import { Description } from './Description';
 import { PlaylistPanel } from './PlaylistPanel';
 import './watch.css';
 
-export function Watch() {
+/** Loads the video in the URL into the persistent player and keeps the playlist context in sync. */
+export function useWatchSession() {
   const [params] = useSearchParams();
   const v = params.get('v') || '';
   const t = parseStartTime(params.get('t') ?? params.get('start'));
   const list = params.get('list');
   const indexParam = Number(params.get('index') || 0);
   const load = usePlayerSession((s) => s.load);
-  const session = usePlayerSession();
-  const theater = useSettings((s) => s.theater);
-  const width = useWindowWidth();
-  const twoColumns = width >= 1017;
+  const sessionVideoId = usePlayerSession((s) => s.videoId);
   const { data: video, isError, error } = useVideoDetails(v || null);
 
   useDocumentTitle(video?.title);
@@ -49,7 +47,7 @@ export function Watch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [v]);
   useEffect(() => {
-    if (v && t && session.videoId === v) usePlayerSession.getState().requestSeek(t);
+    if (v && t && sessionVideoId === v) usePlayerSession.getState().requestSeek(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
@@ -81,7 +79,17 @@ export function Watch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [list, playlistData.data, v]);
 
-  const onTimestamp = (sec: number) => usePlayerSession.getState().requestSeek(sec);
+  return { v, list, video, isError, error };
+}
+
+export const onTimestamp = (sec: number) => usePlayerSession.getState().requestSeek(sec);
+
+export function Watch() {
+  const { list, video, isError, error } = useWatchSession();
+  const session = usePlayerSession();
+  const theater = useSettings((s) => s.theater);
+  const width = useWindowWidth();
+  const twoColumns = width >= 1017;
 
   const secondary = (
     <div className="watch-secondary">
@@ -143,7 +151,8 @@ function MetadataSkeleton() {
   );
 }
 
-function WatchMetadata({ video, onTimestamp }: { video: VideoDetails; onTimestamp: (t: number) => void }) {
+/** Like/dislike state (local or account) plus Return YouTube Dislike counts. */
+export function useLikes(video: VideoDetails) {
   const lite = useMemo(() => toLite(video), [video]);
   const rating = useLibrary((s) => (s.liked.some((x) => x.videoId === video.videoId) ? 'like' : s.disliked.includes(video.videoId) ? 'dislike' : 'none'));
   const setRating = useLibrary((s) => s.setRating);
@@ -155,14 +164,19 @@ function WatchMetadata({ video, onTimestamp }: { video: VideoDetails; onTimestam
     enabled: rydEnabled && cfg?.ryd !== false,
     staleTime: 60 * 60 * 1000,
   });
+  const likes = (video.likeCount || ryd?.likes || 0) + (rating === 'like' ? 1 : 0);
+  const dislikes = ryd?.dislikes != null ? ryd.dislikes + (rating === 'dislike' ? 1 : 0) : undefined;
+  const ratio = dislikes != null && likes + dislikes > 0 ? likes / (likes + dislikes) : null;
+  return { lite, rating, setRating, likes, dislikes, ratio };
+}
+
+function WatchMetadata({ video, onTimestamp }: { video: VideoDetails; onTimestamp: (t: number) => void }) {
+  const { lite, rating, setRating, likes, dislikes, ratio } = useLikes(video);
   const [dialog, setDialog] = useState<'share' | 'save' | null>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const width = useWindowWidth();
 
-  const likes = (video.likeCount || ryd?.likes || 0) + (rating === 'like' ? 1 : 0);
-  const dislikes = ryd?.dislikes != null ? ryd.dislikes + (rating === 'dislike' ? 1 : 0) : undefined;
-  const ratio = dislikes != null && likes + dislikes > 0 ? likes / (likes + dislikes) : null;
   const avatar = avatarUrl(video.authorThumbnails, 40);
   const showSaveInline = width >= 1300 || width < 1017;
 
@@ -267,7 +281,7 @@ function WatchMetadata({ video, onTimestamp }: { video: VideoDetails; onTimestam
   );
 }
 
-function Related({ video }: { video: VideoDetails | null }) {
+export function Related({ video, full }: { video: VideoDetails | null; full?: boolean }) {
   const [chip, setChip] = useState('all');
   const notInterested = useLibrary((s) => s.notInterested);
   useEffect(() => setChip('all'), [video?.videoId]);
@@ -289,9 +303,7 @@ function Related({ video }: { video: VideoDetails | null }) {
   if (!video) {
     return (
       <div className="watch-related">
-        {Array.from({ length: 10 }, (_, i) => (
-          <CompactSkeleton key={i} />
-        ))}
+        {Array.from({ length: 10 }, (_, i) => (full ? <RichSkeleton key={i} /> : <CompactSkeleton key={i} />))}
       </div>
     );
   }
@@ -304,9 +316,7 @@ function Related({ video }: { video: VideoDetails | null }) {
     <div className="watch-related">
       <ChipBar chips={chips} active={chip} onChange={setChip} className="watch-related-chips" />
       {chip === 'channel' && fromChannel.isLoading && Array.from({ length: 8 }, (_, i) => <CompactSkeleton key={i} />)}
-      {items.map((r) => (
-        <VideoCardCompact key={r.videoId} v={r} />
-      ))}
+      {items.map((r) => (full ? <VideoCardGrid key={r.videoId} v={r} /> : <VideoCardCompact key={r.videoId} v={r} />))}
     </div>
   );
 }

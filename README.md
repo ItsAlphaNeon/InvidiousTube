@@ -15,6 +15,16 @@ A self-hosted frontend for [Invidious](https://invidious.io) that looks and beha
 - **Link redirect**: swap `www.youtube.com` / `youtu.be` for your InvidiousTube domain in any YouTube link and it opens here — videos (with timestamps and playlists), Shorts, live, embeds, channels (`/@handle`, `/channel/…`, `/c/…`, `/user/…`), playlists and searches. Pasting a YouTube link into the search box works too, and Settings → Link redirect has a converter and a bookmarklet.
 - **Import / export**: YouTube Takeout CSV, NewPipe/Invidious JSON, FreeTube/RSS OPML, and full library backups.
 
+## Mobile app
+
+Phones automatically get an app-style layout modelled on the YouTube Android/iOS app (override it under Settings > Appearance > Layout):
+
+- Bottom tab bar (Home, Explore, Subscriptions, You), a top bar that hides as you scroll, and full-screen search
+- A watch view that slides up over the page you were on, with comments and description in bottom sheets
+- Touch player: tap for controls, double-tap the sides to seek 10s, hold for 2x speed, swipe down to minimize, swipe up or rotate the phone for full screen
+- A miniplayer docked above the tab bar (swipe it sideways to dismiss)
+- Installable as a full-screen web app: on Android choose *Install app*, on iOS *Share > Add to Home Screen*. Once installed, sharing a YouTube link to it from the YouTube app or a browser opens the video here.
+
 ## How it works
 
 ```

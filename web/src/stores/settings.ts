@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type ThemeSetting = 'dark' | 'light' | 'system';
+export type LayoutSetting = 'auto' | 'desktop' | 'mobile';
 export type SBAction = 'skip' | 'manual' | 'show' | 'off';
 export type SBCategory =
   | 'sponsor'
@@ -28,6 +29,8 @@ export const SB_CATEGORIES: { id: SBCategory; label: string; color: string; desc
 
 interface SettingsState {
   theme: ThemeSetting;
+  /** auto = the touch/app layout on phones, the desktop layout elsewhere */
+  layout: LayoutSetting;
   region: string;
   autoplayNext: boolean;
   autoplayOnLoad: boolean;
@@ -52,6 +55,7 @@ export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
       theme: 'dark',
+      layout: 'auto',
       region: 'US',
       autoplayNext: true,
       autoplayOnLoad: true,

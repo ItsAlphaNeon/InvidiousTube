@@ -11,6 +11,8 @@ interface UIState {
   /** Whether the user expanded the guide (full guide on wide screens / drawer when narrow). */
   guideExpanded: boolean;
   drawerOpen: boolean;
+  /** mobile layout: the page shown under the watch view (where "minimize" returns to) */
+  mobilePage: string;
   toasts: Toast[];
   toggleGuide: (isDrawerMode: boolean) => void;
   closeDrawer: () => void;
@@ -23,6 +25,7 @@ let toastId = 1;
 export const useUI = create<UIState>()((set, get) => ({
   guideExpanded: true,
   drawerOpen: false,
+  mobilePage: '/',
   toasts: [],
   toggleGuide: (isDrawerMode) => {
     if (isDrawerMode) set({ drawerOpen: !get().drawerOpen });

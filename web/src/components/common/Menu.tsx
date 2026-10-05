@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } fro
 import { createPortal } from 'react-dom';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { Icon, type IconName } from '../../icons';
+import { useIsMobile } from '../../mobile/useIsMobile';
+import { Sheet } from '../../mobile/Sheet';
 
 interface MenuProps {
   anchor: RefObject<HTMLElement | null>;
@@ -20,9 +22,10 @@ interface MenuProps {
 export function Menu({ anchor, open, onClose, children, align = 'right', offset = 4, minWidth, className, cover }: MenuProps) {
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const mobile = useIsMobile();
 
   useLayoutEffect(() => {
-    if (!open) {
+    if (!open || mobile) {
       setPos(null);
       return;
     }
@@ -51,11 +54,19 @@ export function Menu({ anchor, open, onClose, children, align = 'right', offset 
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', onClose);
     };
-  }, [open, anchor, align, offset, cover, onClose]);
+  }, [open, anchor, align, offset, cover, onClose, mobile]);
 
-  useClickOutside([popRef, anchor], onClose, open);
+  useClickOutside([popRef, anchor], onClose, open && !mobile);
 
   if (!open) return null;
+  // Phones get the app's bottom sheet instead of a popup
+  if (mobile) {
+    return (
+      <Sheet onClose={onClose} className="m-menu-sheet">
+        <div role="menu">{children}</div>
+      </Sheet>
+    );
+  }
   return createPortal(
     <div
       ref={popRef}

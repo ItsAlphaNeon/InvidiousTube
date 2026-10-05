@@ -430,7 +430,14 @@ if (existsSync(DIST_DIR)) {
     '/assets',
     express.static(path.join(DIST_DIR, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }),
   );
-  app.use(express.static(DIST_DIR, { index: false, maxAge: '1h' }));
+  app.use(
+    express.static(DIST_DIR, {
+      index: false,
+      maxAge: '1h',
+      // the service worker and manifest must update promptly after a deploy
+      setHeaders: (res, file) => /(?:sw\.js|\.webmanifest)$/.test(file) && res.setHeader('Cache-Control', 'no-cache'),
+    }),
+  );
   app.get('*', (req, res, next) => {
     if (req.method !== 'GET' || req.path.startsWith('/x/') || req.path.startsWith('/auth/')) return next();
     res.setHeader('Cache-Control', 'no-cache');

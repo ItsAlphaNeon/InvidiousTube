@@ -10,10 +10,12 @@ import { parseChapters } from '../../player/chapters';
 interface Props {
   video: VideoDetails;
   onTimestamp: (t: number) => void;
+  /** start expanded without a "Show less" (mobile description sheet) */
+  sheet?: boolean;
 }
 
-export function Description({ video, onTimestamp }: Props) {
-  const [expanded, setExpanded] = useState(false);
+export function Description({ video, onTimestamp, sheet }: Props) {
+  const [expanded, setExpanded] = useState(!!sheet);
   const chapters = useMemo(() => parseChapters(video.description, video.lengthSeconds), [video]);
   const tags = (video.keywords || []).slice(0, 3);
   const hashtagsInDesc = useMemo(() => {
@@ -112,9 +114,11 @@ export function Description({ video, onTimestamp }: Props) {
               </Link>
             </div>
           </div>
-          <button className="description-less" onClick={() => setExpanded(false)}>
-            Show less
-          </button>
+          {!sheet && (
+            <button className="description-less" onClick={() => setExpanded(false)}>
+              Show less
+            </button>
+          )}
         </>
       )}
     </div>

@@ -8,7 +8,7 @@ import { useSubscriptions } from '../hooks/useAccount';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAuth } from '../stores/auth';
 import { useLibrary } from '../stores/library';
-import { SB_CATEGORIES, useSettings, type SBAction, type ThemeSetting } from '../stores/settings';
+import { SB_CATEGORIES, useSettings, type LayoutSetting, type SBAction, type ThemeSetting } from '../stores/settings';
 import { toast } from '../stores/ui';
 import './settings.css';
 
@@ -181,6 +181,12 @@ function PlaybackSection() {
   );
 }
 
+const LAYOUTS: { id: LayoutSetting; label: string }[] = [
+  { id: 'auto', label: 'Automatic (app layout on phones)' },
+  { id: 'mobile', label: 'Mobile app layout' },
+  { id: 'desktop', label: 'Desktop layout' },
+];
+
 const THEMES: { id: ThemeSetting; label: string }[] = [
   { id: 'system', label: 'Use device theme' },
   { id: 'dark', label: 'Dark theme' },
@@ -199,6 +205,15 @@ function AppearanceSection() {
           <label key={t.id} className="settings-radio">
             <input type="radio" name="theme" checked={s.theme === t.id} onChange={() => s.set({ theme: t.id })} />
             {t.label}
+          </label>
+        ))}
+      </section>
+      <section className="settings-section">
+        <h3>Layout</h3>
+        {LAYOUTS.map((l) => (
+          <label key={l.id} className="settings-radio">
+            <input type="radio" name="layout" checked={s.layout === l.id} onChange={() => s.set({ layout: l.id })} />
+            {l.label}
           </label>
         ))}
       </section>

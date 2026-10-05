@@ -81,7 +81,7 @@ function SignInButton() {
   );
 }
 
-function NotificationsButton() {
+export function NotificationsButton() {
   const ref = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const feed = useSubscriptionFeed(true);

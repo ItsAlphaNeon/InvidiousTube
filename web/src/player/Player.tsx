@@ -11,6 +11,7 @@ import { SB_CATEGORIES, useSettings } from '../stores/settings';
 import { chapterAt, parseChapters } from './chapters';
 import { Engine, type EngineStats, type VariantInfo } from './engine';
 import { PIcon } from './icons';
+import { MobileChrome } from './MobileChrome';
 import { AutoplayCountdown, Bezel, EndScreen, LargePlayButton, SeekOverlay, SponsorSkipButton, StatsForNerds, type BezelState } from './Overlays';
 import { ProgressBar } from './ProgressBar';
 import { SettingsMenu, type QualityOption } from './SettingsMenu';
@@ -32,6 +33,8 @@ export interface PlayerProps {
   inPlaylist: boolean;
   onChapterClick?: () => void;
   detailsError?: string | null;
+  /** 'mobile' swaps the desktop chrome for app-style touch controls */
+  variant?: 'desktop' | 'mobile';
 }
 
 const isTyping = (el: EventTarget | null) => {
@@ -49,6 +52,7 @@ function qualityBadge(h: number): QualityOption['badge'] {
 
 export function Player(props: PlayerProps) {
   const { videoId, video, startAt, mini, theater } = props;
+  const mobile = props.variant === 'mobile';
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const engineRef = useRef<Engine | null>(null);
@@ -84,6 +88,8 @@ export function Player(props: PlayerProps) {
   const [volumeHover, setVolumeHover] = useState(false);
   const [volumeDrag, setVolumeDrag] = useState(false);
   const [skipNotice, setSkipNotice] = useState<{ seg: SponsorSegment; n: number } | null>(null);
+  const [pseudoFs, setPseudoFs] = useState(false);
+  const [mSheetOpen, setMSheetOpen] = useState(false);
   const skippedRef = useRef<Set<string>>(new Set());
   const hideTimer = useRef<number>();
   const focusedRef = useRef(false);
@@ -484,16 +490,79 @@ export function Player(props: PlayerProps) {
   }, []);
   useEffect(() => {
     if (mini && document.fullscreenElement === rootRef.current) document.exitFullscreen();
+    if (mini) setPseudoFs(false);
   }, [mini]);
+
+  // Phones: real full screen + orientation lock where supported, otherwise a CSS "full window" mode
+  const setMobileFullscreen = useCallback(async (on: boolean) => {
+    const root = rootRef.current;
+    const el = videoRef.current;
+    if (!root) return;
+    const orientation = screen.orientation as (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
+    if (!on) {
+      setPseudoFs(false);
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
+      try {
+        orientation?.unlock?.();
+      } catch {
+        /* not supported */
+      }
+      return;
+    }
+    if (document.fullscreenEnabled && root.requestFullscreen) {
+      try {
+        await root.requestFullscreen({ navigationUI: 'hide' });
+        const portrait = !!el && el.videoHeight > el.videoWidth;
+        await orientation?.lock?.(portrait ? 'portrait' : 'landscape').catch(() => undefined);
+        return;
+      } catch {
+        /* fall back below */
+      }
+    }
+    setPseudoFs(true);
+  }, []);
+
+  // Rotating the phone to landscape on the watch page goes full screen; rotating back leaves it
+  useEffect(() => {
+    if (!mobile) return;
+    const mql = matchMedia('(orientation: landscape) and (max-height: 520px)');
+    const on = () => {
+      if (usePlayerSession.getState().mini) return;
+      if (mql.matches) {
+        if (!document.fullscreenElement) setPseudoFs(true);
+      } else setPseudoFs(false);
+    };
+    on();
+    mql.addEventListener('change', on);
+    return () => mql.removeEventListener('change', on);
+  }, [mobile, mini]);
+  useEffect(() => {
+    if (!pseudoFs) return;
+    document.documentElement.classList.add('player-pseudo-fs');
+    return () => document.documentElement.classList.remove('player-pseudo-fs');
+  }, [pseudoFs]);
+  const isFullscreen = fullscreen || pseudoFs;
 
   // ------------------------------------------------------------------ autohide
   const poke = useCallback(() => {
     setActive(true);
     clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setActive(false), 3000);
-  }, []);
+    hideTimer.current = window.setTimeout(() => {
+      // the app keeps its controls up while paused
+      if (!(mobile && videoRef.current?.paused)) setActive(false);
+    }, 3000);
+  }, [mobile]);
   useEffect(() => () => clearTimeout(hideTimer.current), []);
-  const showChrome = paused || active || hoverControls || settingsOpen || ended || volumeDrag || scrubT !== null;
+  const showChrome = mobile
+    ? (active && !mini) || ended || scrubT !== null || mSheetOpen
+    : paused || active || hoverControls || settingsOpen || ended || volumeDrag || scrubT !== null;
+  // Pausing from outside the controls (headphones, lock screen) brings the controls back
+  useEffect(() => {
+    if (mobile && paused) {
+      setActive(true);
+      clearTimeout(hideTimer.current);
+    }
+  }, [mobile, paused]);
 
   // ------------------------------------------------------------------ feedback helpers
   const flash = (b: Omit<BezelState, 'n'>) => setBezel({ ...b, n: Date.now() });
@@ -707,7 +776,9 @@ export function Player(props: PlayerProps) {
     paused ? 'paused-mode' : 'playing-mode',
     ended ? 'ended-mode' : '',
     showChrome ? '' : 'ytp-autohide',
-    fullscreen ? 'ytp-fullscreen' : '',
+    isFullscreen ? 'ytp-fullscreen' : '',
+    pseudoFs ? 'ytp-pseudo-fs' : '',
+    mobile ? 'ytp-mobile' : '',
     mini ? 'ytp-mini' : '',
     theater ? 'ytp-big-mode-off' : '',
     chapters.length ? 'ytp-has-chapters' : '',
@@ -725,17 +796,17 @@ export function Player(props: PlayerProps) {
       ref={rootRef}
       className={rootClass}
       tabIndex={-1}
-      onMouseMove={poke}
-      onMouseLeave={() => !paused && setActive(false)}
+      onMouseMove={mobile ? undefined : poke}
+      onMouseLeave={() => !mobile && !paused && setActive(false)}
       onContextMenu={(e) => {
-        if (mini) return;
+        if (mini || mobile) return;
         e.preventDefault();
         const r = rootRef.current!.getBoundingClientRect();
         setContextMenu({ x: Math.min(e.clientX - r.left, r.width - 260), y: Math.min(e.clientY - r.top, r.height - 220) });
       }}
       style={{ '--player-h': `${playerH}px` } as React.CSSProperties}
     >
-      <div className="html5-video-container" onClick={onSurfaceClick} onDoubleClick={onSurfaceDblClick}>
+      <div className="html5-video-container" onClick={mobile ? undefined : onSurfaceClick} onDoubleClick={mobile ? undefined : onSurfaceDblClick}>
         <video ref={videoRef} className="video-stream" playsInline preload="auto" crossOrigin="anonymous" />
       </div>
 
@@ -774,8 +845,8 @@ export function Player(props: PlayerProps) {
         </div>
       )}
 
-      {!mini && bezel && <Bezel state={bezel} />}
-      {!mini && seekFx && <SeekOverlay key={seekFx.n} dir={seekFx.dir} secs={seekFx.secs} />}
+      {!mini && !mobile && bezel && <Bezel state={bezel} />}
+      {!mini && !mobile && seekFx && <SeekOverlay key={seekFx.n} dir={seekFx.dir} secs={seekFx.secs} />}
       {needsGesture && !mini && <LargePlayButton onClick={() => play()} thumb={`/vi/${videoId}/maxresdefault.jpg`} />}
 
       {!mini && manualSeg && (
@@ -803,7 +874,7 @@ export function Player(props: PlayerProps) {
         </div>
       )}
 
-      {!mini && ended && !loop && (willAutoplay && props.next && !props.inPlaylist ? (
+      {!mini && !mobile && ended && !loop && (willAutoplay && props.next && !props.inPlaylist ? (
         <AutoplayCountdown next={props.next} onCancel={() => setCountdownCancelled(true)} onPlay={() => props.onNext?.()} />
       ) : (
         !props.inPlaylist && <EndScreen videos={props.endScreen} onReplay={() => { seek(0); play(); }} />
@@ -811,9 +882,73 @@ export function Player(props: PlayerProps) {
 
       {!mini && statsOpen && <StatsForNerds videoId={videoId} stats={stats} volume={volume} muted={muted} onClose={() => setStatsOpen(false)} />}
 
+      {mobile && !mini && (
+        <MobileChrome
+          rootRef={rootRef}
+          title={video?.title}
+          show={showChrome}
+          setShow={(on) => {
+            if (on) poke();
+            else {
+              clearTimeout(hideTimer.current);
+              setActive(false);
+            }
+          }}
+          paused={paused}
+          ended={ended}
+          waiting={waiting}
+          time={shownTime}
+          duration={duration || lengthSeconds}
+          bufferedEnd={bufferedEnd}
+          isLive={isLive}
+          chapters={chapters}
+          currentChapter={currentChapter}
+          segments={segments}
+          storyboard={storyboard}
+          fullscreen={isFullscreen}
+          onToggle={toggle}
+          onSeek={(t) => {
+            seek(t);
+            if (ended) play();
+          }}
+          onSeekBy={(secs) => seek((videoRef.current?.currentTime ?? 0) + secs)}
+          onScrub={setScrubT}
+          onPrev={props.onPrev}
+          onNext={props.onNext}
+          hasNext={!!props.next}
+          onMinimize={() => (isFullscreen ? setMobileFullscreen(false) : props.onToggleMini())}
+          onFullscreen={setMobileFullscreen}
+          captions={captionTracks.map((c, i) => ({ id: i, label: c.label }))}
+          caption={captionId}
+          onCaption={(id) => {
+            setCaptionId(id);
+            settings.set({ captions: id !== null, ...(id !== null ? { captionLang: captionTracks[id].language_code } : {}) });
+          }}
+          onToggleCaptions={toggleCaptions}
+          qualities={qualities}
+          quality={quality}
+          autoHeight={autoHeight}
+          onQuality={applyQuality}
+          speed={speed}
+          onSpeed={setRate}
+          loop={loop}
+          onLoop={setLoop}
+          sleep={sleep}
+          onSleep={setSleep}
+          autoplayNext={settings.autoplayNext}
+          onAutoplayNext={(on) => settings.set({ autoplayNext: on })}
+          inPlaylist={props.inPlaylist}
+          upNext={props.next}
+          showUpNext={ended && !loop && willAutoplay && !props.inPlaylist}
+          onCancelUpNext={() => setCountdownCancelled(true)}
+          onStats={() => setStatsOpen(true)}
+          onSheetChange={setMSheetOpen}
+        />
+      )}
+
       {/* bottom chrome */}
-      {!mini && <div className="ytp-gradient-bottom" />}
-      {!mini && (
+      {!mini && !mobile && <div className="ytp-gradient-bottom" />}
+      {!mini && !mobile && (
         <div className="ytp-chrome-bottom" onMouseEnter={() => setHoverControls(true)} onMouseLeave={() => setHoverControls(false)} onClick={(e) => e.stopPropagation()}>
           {!isLive && (
             <ProgressBar
@@ -985,7 +1120,7 @@ export function Player(props: PlayerProps) {
         </div>
       )}
 
-      {settingsOpen && !mini && (
+      {settingsOpen && !mini && !mobile && (
         <SettingsMenu
           qualities={qualities}
           quality={quality}

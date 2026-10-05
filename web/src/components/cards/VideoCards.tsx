@@ -6,6 +6,7 @@ import type { ChannelItem, PlaylistItem } from '../../api/types';
 import { useChannelAvatar } from '../../hooks/useAccount';
 import { useCardDetails } from '../../hooks/useCardDetails';
 import { Icon, VerifiedBadge } from '../../icons';
+import { useIsMobile } from '../../mobile/useIsMobile';
 import { Avatar } from '../common/Avatar';
 import { RichText } from '../common/RichText';
 import { SubscribeButton } from '../common/SubscribeButton';
@@ -74,7 +75,13 @@ function watchHref(v: CardVideo, list?: string, index?: number) {
 
 // ---------------------------------------------------------------- grid (home / subscriptions / channel)
 
-export const VideoCardGrid = memo(function VideoCardGrid({ v: raw, showAvatar = true, showChannel = true }: { v: CardVideo; showAvatar?: boolean; showChannel?: boolean }) {
+type GridProps = { v: CardVideo; showAvatar?: boolean; showChannel?: boolean };
+
+export const VideoCardGrid = memo(function VideoCardGrid(props: GridProps) {
+  return useIsMobile() ? <VideoCardMobile {...props} /> : <VideoCardGridDesktop {...props} />;
+});
+
+function VideoCardGridDesktop({ v: raw, showAvatar = true, showChannel = true }: GridProps) {
   const { ref, v } = useCardDetails(raw);
   const avatar = useChannelAvatar(v.authorId, v.authorThumbnails?.length ? avatarUrl(v.authorThumbnails, 36) : undefined);
   return (
@@ -104,7 +111,68 @@ export const VideoCardGrid = memo(function VideoCardGrid({ v: raw, showAvatar = 
       </div>
     </div>
   );
-});
+}
+
+// ---------------------------------------------------------------- mobile (app-style full width card)
+
+export function VideoCardMobile({ v: raw, showAvatar = true, showChannel = true, list, index }: GridProps & { list?: string; index?: number }) {
+  const { ref, v } = useCardDetails(raw);
+  const avatar = useChannelAvatar(v.authorId, v.authorThumbnails?.length ? avatarUrl(v.authorThumbnails, 36) : undefined);
+  const href = watchHref(v, list, index);
+  return (
+    <div className="m-card" ref={ref}>
+      <Link to={href} className="m-card-thumb">
+        <Thumbnail videoId={v.videoId} lengthSeconds={v.lengthSeconds} liveNow={v.liveNow} upcoming={v.isUpcoming} />
+      </Link>
+      <div className="m-card-details">
+        {showAvatar && (
+          <Link to={`/channel/${v.authorId}`} className="m-card-avatar">
+            <Avatar src={avatar} name={v.author} size={36} />
+          </Link>
+        )}
+        <Link to={href} className="m-card-meta">
+          <h3 className="m-card-title clamp-2">{v.title}</h3>
+          <div className="m-card-sub">
+            {showChannel && (
+              <>
+                <span className="m-card-channel">
+                  {v.author}
+                  {v.authorVerified && <VerifiedBadge />}
+                </span>
+                <span className="dot-sep" />
+              </>
+            )}
+            {metaLine(v)}
+          </div>
+          {v.liveNow && <Badges v={v} />}
+        </Link>
+        <VideoMenu video={v} className="m-card-menu" />
+      </div>
+    </div>
+  );
+}
+
+/** App-style compact row (thumbnail left), used for history, playlists and up-next lists. */
+export function VideoCardMobileRow({ v: raw, list, index, active, extraMenu }: { v: CardVideo; list?: string; index?: number; active?: boolean; extraMenu?: (close: () => void) => ReactNode }) {
+  const { ref, v } = useCardDetails(raw);
+  const href = watchHref(v, list, index);
+  return (
+    <div className={'m-row' + (active ? ' active' : '')} ref={ref}>
+      <Link to={href} className="m-row-thumb">
+        <Thumbnail videoId={v.videoId} lengthSeconds={v.lengthSeconds} liveNow={v.liveNow} quality="mqdefault" />
+      </Link>
+      <Link to={href} className="m-row-meta">
+        <h3 className="m-row-title clamp-2">{v.title}</h3>
+        <div className="m-row-sub">
+          {v.author}
+          {v.authorVerified && <VerifiedBadge />}
+        </div>
+        <div className="m-row-sub">{metaLine(v)}</div>
+      </Link>
+      <VideoMenu video={v} extra={extraMenu} className="m-row-menu" />
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------- compact (watch sidebar)
 
@@ -119,6 +187,7 @@ export const VideoCardCompact = memo(function VideoCardCompact({
   index?: number;
   active?: boolean;
 }) {
+  if (useIsMobile()) return <VideoCardMobileRow v={v} list={list} index={index} active={active} />;
   return (
     <div className={'compact-item' + (active ? ' active' : '')}>
       <Link to={watchHref(v, list, index)} className="compact-thumb-link">
@@ -144,17 +213,22 @@ export const VideoCardCompact = memo(function VideoCardCompact({
 
 // ---------------------------------------------------------------- list (search results, history)
 
-export const VideoCardList = memo(function VideoCardList({
-  v: raw,
-  extraMenu,
-  size = 'lg',
-  showDescription = true,
-}: {
+type ListProps = {
   v: CardVideo;
   extraMenu?: (close: () => void) => ReactNode;
   size?: 'lg' | 'md';
   showDescription?: boolean;
-}) {
+};
+
+export const VideoCardList = memo(function VideoCardList(props: ListProps) {
+  if (useIsMobile()) {
+    // History-style lists become compact rows; search/trending results become full cards
+    return props.size === 'md' && props.showDescription === false ? <VideoCardMobileRow v={props.v} extraMenu={props.extraMenu} /> : <VideoCardMobile v={props.v} />;
+  }
+  return <VideoCardListDesktop {...props} />;
+});
+
+function VideoCardListDesktop({ v: raw, extraMenu, size = 'lg', showDescription = true }: ListProps) {
   const { ref, v } = useCardDetails(raw);
   const avatar = useChannelAvatar(v.authorId, v.authorThumbnails?.length ? avatarUrl(v.authorThumbnails, 24) : undefined);
   return (
@@ -196,7 +270,7 @@ export const VideoCardList = memo(function VideoCardList({
       </div>
     </div>
   );
-});
+}
 
 // ---------------------------------------------------------------- channel result
 

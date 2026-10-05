@@ -7,7 +7,9 @@ import { toCard, type CardVideo } from '../components/cards/model';
 import { useShortsFilter } from '../hooks/useShortsFilter';
 import { useLibrary } from '../stores/library';
 import { usePlayerSession } from '../stores/player';
+import { useIsMobile } from '../mobile/useIsMobile';
 import { useSettings } from '../stores/settings';
+import { useUI } from '../stores/ui';
 import { Player } from './Player';
 
 /** The single DOM node the player lives in; it is moved between the watch page and the miniplayer. */
@@ -104,6 +106,7 @@ export function PlayerHost() {
   const navigate = useNavigate();
   const { data, error: detailsError } = useVideoDetails(videoId);
   const { next, onNext, onPrev } = useQueueNavigation();
+  const mobile = useIsMobile();
 
   useEffect(() => {
     setVideo(data && data.videoId === videoId ? data : null);
@@ -115,11 +118,14 @@ export function PlayerHost() {
     const s = usePlayerSession.getState();
     if (s.mini) {
       navigate(`/watch?v=${s.videoId}${s.playlist ? `&list=${s.playlist.id}&index=${s.playlist.index + 1}` : ''}`);
+    } else if (mobile) {
+      // Back to the page under the watch view; the video keeps playing in the miniplayer
+      navigate(useUI.getState().mobilePage, { replace: true });
     } else {
       if (window.history.length > 1) navigate(-1);
       else navigate('/');
     }
-  }, [navigate]);
+  }, [navigate, mobile]);
 
   if (!videoId) return null;
   return createPortal(
@@ -137,6 +143,7 @@ export function PlayerHost() {
       endScreen={endScreen}
       inPlaylist={!!playlist}
       detailsError={detailsError ? (detailsError as Error).message : null}
+      variant={mobile ? 'mobile' : 'desktop'}
       onChapterClick={() => document.getElementById('description-chapters')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
     />,
     playerHostEl,
