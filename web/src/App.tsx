@@ -13,6 +13,7 @@ import { Settings } from './pages/Settings';
 import { Watch } from './pages/watch/Watch';
 import { MobileShell } from './mobile/MobileShell';
 import { MobileYou } from './mobile/MobileYou';
+import { ShortsPage } from './mobile/Shorts';
 import { useIsMobile, useMobileClass } from './mobile/useIsMobile';
 import { useAuth } from './stores/auth';
 import { resolveTheme, useSettings } from './stores/settings';
@@ -61,7 +62,7 @@ function ShareTarget() {
 }
 
 /** Page routes shared by the desktop and mobile shells. */
-export function pageRoutes(mobile: boolean) {
+export function pageRoutes(mobile: boolean, shortsTab = false) {
   return (
     <>
       <Route index element={<Home />} />
@@ -87,6 +88,7 @@ export function pageRoutes(mobile: boolean) {
       <Route path="login" element={<Login />} />
       <Route path="settings" element={<Settings />} />
       <Route path="share" element={<ShareTarget />} />
+      {mobile && shortsTab && <Route path="shorts/:id?" element={<ShortsPage />} />}
       <Route path=":handle" element={<LinkRedirect />} />
       <Route path=":handle/:tab" element={<LinkRedirect />} />
       <Route path="*" element={<LinkRedirect />} />
@@ -97,6 +99,7 @@ export function pageRoutes(mobile: boolean) {
 export function App() {
   useThemeSync();
   const mobile = useIsMobile();
+  const shortsTab = useSettings((s) => s.shortsTab);
   useMobileClass(mobile);
   const refresh = useAuth((s) => s.refresh);
   useEffect(() => {
@@ -106,7 +109,7 @@ export function App() {
   return (
     <BrowserRouter>
       {mobile ? (
-        <MobileShell routes={pageRoutes(true)} />
+        <MobileShell routes={pageRoutes(true, shortsTab)} />
       ) : (
         <Routes>
           <Route element={<AppShell />}>{pageRoutes(false)}</Route>

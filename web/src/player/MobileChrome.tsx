@@ -129,6 +129,7 @@ export function MobileChrome(p: MobileChromeProps) {
   const gestureProps = {
     onPointerDown: (e: RPointerEvent<HTMLDivElement>) => {
       if (!e.isPrimary) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
       gesture.current = { x: e.clientX, y: e.clientY, id: e.pointerId, t: Date.now(), moved: false };
       clearTimeout(holdTimer.current);
       if (!p.paused && !p.isLive) {

@@ -23,6 +23,7 @@ Phones automatically get an app-style layout modelled on the YouTube Android/iOS
 - A watch view that slides up over the page you were on, with comments and description in bottom sheets
 - Touch player: tap for controls, double-tap the sides to seek 10s, hold for 2x speed, swipe down to minimize, swipe up or rotate the phone for full screen
 - A miniplayer docked above the tab bar (swipe it sideways to dismiss)
+- Optional Shorts tab (Settings > Playback): a full-screen swipe player fed by your subscriptions' Shorts plus Shorts from trending channels. Independent of *Hide Shorts*, which only keeps them out of your feeds.
 - Installable as a full-screen web app: on Android choose *Install app*, on iOS *Share > Add to Home Screen*. Once installed, sharing a YouTube link to it from the YouTube app or a browser opens the video here.
 
 ## How it works

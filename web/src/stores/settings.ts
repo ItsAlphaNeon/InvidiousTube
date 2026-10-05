@@ -42,6 +42,8 @@ interface SettingsState {
   theater: boolean;
   hoverPreview: boolean;
   hideShorts: boolean;
+  /** mobile layout: a Shorts tab with a vertical swipe player */
+  shortsTab: boolean;
   ambientMode: boolean;
   sponsorblock: boolean;
   sbCategories: Record<SBCategory, SBAction>;
@@ -67,6 +69,7 @@ export const useSettings = create<SettingsState>()(
       theater: false,
       hoverPreview: true,
       hideShorts: true,
+      shortsTab: false,
       ambientMode: true,
       sponsorblock: true,
       sbCategories: {

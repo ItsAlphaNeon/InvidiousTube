@@ -167,6 +167,9 @@ function PlaybackSection() {
         <Row title="Hide Shorts" desc="Keep YouTube Shorts out of your home feed, subscriptions, search, recommendations and autoplay">
           <Toggle on={s.hideShorts} onChange={(v) => s.set({ hideShorts: v })} />
         </Row>
+        <Row title="Shorts tab" desc="Mobile layout: add a Shorts tab with a full-screen swipe player (works alongside Hide Shorts, which only cleans up your feeds)">
+          <Toggle on={s.shortsTab} onChange={(v) => s.set({ shortsTab: v })} />
+        </Row>
         <Row title="Inline playback" desc="Preview videos when hovering over thumbnails">
           <Toggle on={s.hoverPreview} onChange={(v) => s.set({ hoverPreview: v })} />
         </Row>

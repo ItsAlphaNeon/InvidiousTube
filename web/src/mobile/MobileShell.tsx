@@ -15,7 +15,7 @@ import { MobileWatch } from './MobileWatch';
 import './mobile.css';
 
 const HOME_LOCATION: Location = { pathname: '/', search: '', hash: '', state: null, key: 'm-home' };
-const ROOT_TABS = ['/', '/feed/trending', '/feed/explore', '/feed/subscriptions', '/feed/you', '/feed/library'];
+const ROOT_TABS = ['/shorts', '/feed/trending', '/feed/explore', '/feed/subscriptions', '/feed/you', '/feed/library'];
 
 /**
  * App-style layout for phones: a top app bar, a bottom tab bar, and a watch view that slides up over
@@ -55,11 +55,13 @@ export function MobileShell({ routes }: { routes: ReactNode }) {
   }, [pageKey]);
 
   useBarAutoHide();
-  const mini = usePlayerSession((s) => s.mini && !!s.videoId);
+  const shortsTab = useSettings((s) => s.shortsTab);
+  const inShorts = shortsTab && page.pathname.startsWith('/shorts');
+  const mini = usePlayerSession((s) => s.mini && !!s.videoId) && !inShorts;
 
   return (
-    <div className={'m-app' + (mini ? ' has-mini' : '') + (isWatch ? ' watch-open' : '')}>
-      <MobileTopBar pathname={page.pathname} search={page.search} />
+    <div className={'m-app' + (mini ? ' has-mini' : '') + (isWatch ? ' watch-open' : '') + (inShorts ? ' shorts-open' : '')}>
+      {!inShorts && <MobileTopBar pathname={page.pathname} search={page.search} />}
       <main className="m-page">
         <Routes location={page}>{routes}</Routes>
       </main>
@@ -161,11 +163,15 @@ const TABS: { to: string; label: string; icon: IconName; iconOn: IconName; match
   { to: '/feed/you', label: 'You', icon: 'account', iconOn: 'account', match: (p) => ['/feed/you', '/feed/library', '/feed/history', '/feed/playlists'].includes(p) },
 ];
 
+const SHORTS_TAB = { to: '/shorts', label: 'Shorts', icon: 'shorts' as IconName, iconOn: 'shorts' as IconName, match: (p: string) => p.startsWith('/shorts') };
+
 function BottomNav({ pathname }: { pathname: string }) {
   const username = useAuth((s) => s.username);
+  const shortsTab = useSettings((s) => s.shortsTab);
+  const tabs = shortsTab ? [TABS[0], SHORTS_TAB, ...TABS.slice(1)] : TABS;
   return (
     <nav className="m-bottomnav">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const on = t.match(pathname);
         return (
           <Link
@@ -174,7 +180,7 @@ function BottomNav({ pathname }: { pathname: string }) {
             className={'m-tab' + (on ? ' on' : '')}
             onClick={(e) => {
               // Tapping the tab you're on scrolls back to the top
-              if (pathname === t.to) {
+              if (pathname === t.to || (t.to === '/shorts' && t.match(pathname))) {
                 e.preventDefault();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }

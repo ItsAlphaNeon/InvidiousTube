@@ -554,7 +554,7 @@ html.is-mobile .rich-item .rich-details {
   height: var(--m-mini);
   background: var(--raised-bg);
   border-top: 1px solid var(--layer-10);
-  touch-action: pan-y;
+  touch-action: none;
   transition: transform 0.2s, opacity 0.2s;
   animation: m-mini-in 0.2s ease-out;
 }
@@ -987,9 +987,7 @@ html.is-mobile .rich-item .rich-details {
   position: absolute;
   inset: 0;
   z-index: 20;
-  touch-action: pan-y;
-}
-.ytp-fullscreen .mp-gestures {
+  /* the browser must not claim vertical swipes as scrolling (that cancels the gesture) */
   touch-action: none;
 }
 .mp-chrome {
@@ -1846,4 +1844,223 @@ html.is-mobile .comment-box {
 }
 html.is-mobile .chapter-strip {
   overflow-x: auto;
+}
+
+/* ---------------------------------------------------------------- Shorts */
+.shorts-open .m-page {
+  padding: 0;
+}
+.shorts-open .m-bottomnav {
+  background: #0f0f0f;
+  color: #fff;
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+.shorts-open .m-tab {
+  color: #fff;
+}
+.m-shorts {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--m-nav) + var(--m-safe-bottom));
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  background: #000;
+  color: #fff;
+}
+.m-shorts-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+.m-shorts-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: m-spin 0.8s linear infinite;
+}
+@keyframes m-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.m-short {
+  position: relative;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+  background: #000;
+}
+.m-short-poster,
+.m-short-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.m-short-poster {
+  filter: blur(16px) brightness(0.6);
+  transform: scale(1.1);
+}
+.m-short-video {
+  object-fit: contain;
+}
+.m-short-tap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.m-short-flash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  padding: 6px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: m-flash 0.6s ease-out forwards;
+}
+.m-short-flash.static {
+  animation: none;
+}
+@keyframes m-flash {
+  to {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+.m-short-unmute {
+  position: absolute;
+  top: calc(16px + var(--m-safe-top));
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 14px 0 4px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+.m-short-unmute .ytp-svg {
+  width: 28px;
+  height: 28px;
+}
+.m-short-actions {
+  position: absolute;
+  right: 6px;
+  bottom: 24px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.m-short-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 60px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.m-short-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+.m-short-action .yt-icon {
+  width: 26px;
+  height: 26px;
+  color: #fff;
+}
+.m-short-action.on .m-short-action-icon {
+  background: rgba(255, 255, 255, 0.3);
+}
+.m-short-info {
+  position: absolute;
+  left: 12px;
+  right: 76px;
+  bottom: 20px;
+  z-index: 3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.m-short-owner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.m-short-owner-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.m-short-owner .pill-btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.m-short-title {
+  font-size: 14px;
+  line-height: 20px;
+}
+.m-short-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.m-short-progress > div {
+  height: 100%;
+  background: #f00;
+}
+.m-short::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  pointer-events: none;
+}
+.m-short-failed {
+  position: absolute;
+  top: 40%;
+  left: 24px;
+  right: 24px;
+  z-index: 2;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
 }
