@@ -6,6 +6,7 @@ export interface Thumbnail {
 }
 
 export interface VideoItem {
+  /** "shortVideo" is Invidious' compact video object (e.g. subscription feed), not a YouTube Short */
   type: 'video' | 'shortVideo';
   title: string;
   videoId: string;

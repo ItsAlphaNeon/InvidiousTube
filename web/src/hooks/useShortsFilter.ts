@@ -37,8 +37,10 @@ const useShortsCache = create<{ known: Record<string, boolean>; add: (shorts: st
   ),
 );
 
+// Note: Invidious' "shortVideo" type is just its compact video object (every subscription-feed
+// entry uses it), not a YouTube Short, so it must not be used as a signal here.
 function obviousShort(v: Filterable): boolean {
-  return v.type === 'shortVideo' || /#shorts?\b/i.test(v.title || '');
+  return /#shorts?\b/i.test(v.title || '');
 }
 
 /** Only videos that could be Shorts (short or unknown length, not live) need a server check. */

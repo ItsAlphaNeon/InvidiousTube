@@ -41,8 +41,10 @@ export function toCard(v: VideoItem | RecommendedVideo | VideoLite | CardVideo):
   if (typeof anyV.published === 'string') published = Math.floor(Date.parse(anyV.published) / 1000) || undefined;
   if (viewCount === 0 && viewCountText && viewCountText !== '0 views') viewCount = undefined;
   // Newer Invidious trending responses contain zeroed metadata (0 views, length 0, published "now").
-  const incomplete = !anyV.liveNow && !viewCount && (!published || Math.abs(Date.now() / 1000 - published) < 600);
-  if (incomplete) {
+  const placeholder = !anyV.liveNow && !viewCount && (!published || Math.abs(Date.now() / 1000 - published) < 600);
+  // The account subscription feed is built from RSS and has no durations; fetch those lazily too
+  const incomplete = placeholder || (!anyV.liveNow && !anyV.isUpcoming && !v.lengthSeconds);
+  if (placeholder) {
     viewCount = undefined;
     viewCountText = undefined;
     published = undefined;
@@ -58,7 +60,7 @@ export function toCard(v: VideoItem | RecommendedVideo | VideoLite | CardVideo):
     viewCount,
     viewCountText,
     published,
-    publishedText: incomplete ? undefined : anyV.publishedText,
+    publishedText: placeholder ? undefined : anyV.publishedText,
     liveNow: anyV.liveNow,
     isUpcoming: anyV.isUpcoming,
     premiereTimestamp: anyV.premiereTimestamp,
