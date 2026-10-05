@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { formatDate, fullNumber, subsText } from '../api/format';
 import { avatarUrl, bannerUrl, proxyImage } from '../api/images';
 import { api } from '../api/invidious';
@@ -31,7 +31,8 @@ const TABS = [
 /** Resolves /@handle, /c/name and /user/name routes to a channel ID. */
 export function ChannelResolver() {
   const { handle, name, tab } = useParams();
-  const path = handle ? `@${handle.replace(/^@/, '')}` : name ? `c/${name}` : '';
+  const { pathname } = useLocation();
+  const path = handle ? `@${handle.replace(/^@/, '')}` : name ? `${pathname.startsWith('/user/') ? 'user' : 'c'}/${name}` : '';
   const { data, isError } = useQuery({
     queryKey: ['resolve', path],
     queryFn: () => api.resolveUrl(`https://www.youtube.com/${path}`),
@@ -44,7 +45,9 @@ export function ChannelResolver() {
 }
 
 export function Channel() {
-  const { id = '', tab = 'featured' } = useParams();
+  const { id = '', tab: rawTab = 'featured' } = useParams();
+  // Unknown YouTube tabs (about, store, featured, ...) fall back to the channel home
+  const tab = TABS.some((t) => t.id === rawTab) || rawTab === 'search' ? rawTab : 'featured';
   const navigate = useNavigate();
   const { data: ch, isLoading, isError, error } = useQuery({
     queryKey: ['channel', id],

@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/invidious';
 import { avatarUrl } from '../api/images';
+import { resolveYouTubeUrl } from '../api/youtubeUrl';
 import { useSubscriptions } from '../hooks/useAccount';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAuth } from '../stores/auth';
@@ -17,6 +18,7 @@ const SECTIONS = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'sponsorblock', label: 'SponsorBlock' },
   { id: 'privacy', label: 'Privacy' },
+  { id: 'links', label: 'Link redirect' },
   { id: 'data', label: 'Import & export' },
   { id: 'shortcuts', label: 'Keyboard shortcuts' },
 ];
@@ -63,6 +65,7 @@ export function Settings() {
         {section === 'appearance' && <AppearanceSection />}
         {section === 'sponsorblock' && <SponsorBlockSection />}
         {section === 'privacy' && <PrivacySection />}
+        {section === 'links' && <LinksSection />}
         {section === 'data' && <DataSection />}
         {section === 'shortcuts' && <ShortcutsSection />}
       </div>
@@ -284,6 +287,94 @@ function PrivacySection() {
           <button className="pill-btn" onClick={() => (useLibrary.setState({ notInterested: [] }), toast('Hidden videos restored'))}>
             Reset
           </button>
+        </Row>
+      </section>
+    </>
+  );
+}
+
+function LinksSection() {
+  const origin = location.origin;
+  const host = location.host;
+  const navigate = useNavigate();
+  const [input, setInput] = useState('');
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+  const target = input.trim() ? resolveYouTubeUrl(/^https?:/i.test(input.trim()) ? input.trim() : `https://${input.trim()}`) : null;
+  const bookmarklet =
+    `javascript:(()=>{const u=new URL(location.href);` +
+    String.raw`if(/(^|\.)youtube(-nocookie)?\.com$|^youtu\.be$/.test(u.hostname))` +
+    `location.href=${JSON.stringify(origin)}+u.pathname+u.search;` +
+    `else alert('Not a YouTube page');})()`;
+  // React refuses javascript: hrefs in JSX, so set it directly on the element
+  useEffect(() => {
+    bookmarkletRef.current?.setAttribute('href', bookmarklet);
+  }, [bookmarklet]);
+
+  return (
+    <>
+      <h1 className="settings-title">Link redirect</h1>
+      <p className="settings-lead">Open any YouTube link here by swapping the domain</p>
+      <section className="settings-section">
+        <h3>Swap the domain</h3>
+        <p className="settings-row-desc" style={{ fontSize: 14, lineHeight: '20px' }}>
+          Replace <code>www.youtube.com</code> or <code>youtu.be</code> with <code>{host}</code> and keep the rest of the link. Videos, Shorts, live
+          streams, playlists, channels (<code>/@handle</code>, <code>/channel/…</code>), searches and timestamps all carry over.
+        </p>
+        <table className="shortcuts-table link-examples">
+          <tbody>
+            {[
+              ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42', `${origin}/watch?v=dQw4w9WgXcQ&t=42`],
+              ['https://youtu.be/dQw4w9WgXcQ', `${origin}/dQw4w9WgXcQ`],
+              ['https://www.youtube.com/shorts/…', `${origin}/shorts/…`],
+              ['https://www.youtube.com/@LinusTechTips', `${origin}/@LinusTechTips`],
+            ].map(([a, b]) => (
+              <tr key={a}>
+                <td>{a}</td>
+                <td>{b}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <section className="settings-section">
+        <h3>Convert a link</h3>
+        <div className="link-convert">
+          <input
+            className="text-field"
+            placeholder="Paste a YouTube link"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && target && navigate(target)}
+          />
+          <button className="pill-btn blue" disabled={!target} onClick={() => target && navigate(target)}>
+            Open
+          </button>
+        </div>
+        {input.trim() && (
+          <div className="settings-row-desc" style={{ marginTop: 8 }}>
+            {target ? (
+              <>
+                Opens <code>{origin + target}</code>
+                <button
+                  className="pill-btn text sm"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => navigator.clipboard?.writeText(origin + target).then(() => toast('Link copied to clipboard'))}
+                >
+                  Copy
+                </button>
+              </>
+            ) : (
+              "That doesn't look like a YouTube link this site can open."
+            )}
+          </div>
+        )}
+      </section>
+      <section className="settings-section">
+        <h3>Bookmarklet</h3>
+        <Row title="Open YouTube pages here" desc="Drag this button to your bookmarks bar, then click it on any youtube.com page to open the same page here.">
+          <a ref={bookmarkletRef} className="pill-btn filled" onClick={(e) => e.preventDefault()} draggable>
+            Open in {useSettings.getState().brand}
+          </a>
         </Row>
       </section>
     </>

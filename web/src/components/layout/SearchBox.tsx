@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/invidious';
+import { resolveYouTubeUrl } from '../../api/youtubeUrl';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { Icon } from '../../icons';
 import { useLibrary } from '../../stores/library';
@@ -13,24 +14,6 @@ function useDebounced<T>(value: T, ms: number): T {
     return () => clearTimeout(t);
   }, [value, ms]);
   return v;
-}
-
-/** Extracts a YouTube video ID from a pasted URL so pasting links goes straight to the video. */
-function videoIdFromInput(q: string): { id: string; t?: string } | null {
-  try {
-    const u = new URL(q.trim());
-    const host = u.hostname.replace(/^www\.|^m\.|^music\./, '');
-    if (host === 'youtu.be') return { id: u.pathname.slice(1, 12), t: u.searchParams.get('t') ?? undefined };
-    if (host === 'youtube.com' || host.includes('invidious') || u.pathname === '/watch') {
-      const v = u.searchParams.get('v');
-      if (v) return { id: v, t: u.searchParams.get('t') ?? undefined };
-      const m = u.pathname.match(/^\/(?:shorts|live|embed)\/([\w-]{11})/);
-      if (m) return { id: m[1] };
-    }
-  } catch {
-    /* not a URL */
-  }
-  return null;
 }
 
 export function SearchBox({ autoFocus, onDone }: { autoFocus?: boolean; onDone?: () => void }) {
@@ -72,10 +55,13 @@ export function SearchBox({ autoFocus, onDone }: { autoFocus?: boolean; onDone?:
     setOpen(false);
     inputRef.current?.blur();
     onDone?.();
-    const vid = videoIdFromInput(query);
-    if (vid) {
-      navigate(`/watch?v=${vid.id}${vid.t ? `&t=${vid.t}` : ''}`);
-      return;
+    // Pasted YouTube links (videos, channels, playlists, youtu.be, ...) open directly
+    if (/^https?:\/\//i.test(query) || /^(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(query)) {
+      const target = resolveYouTubeUrl(/^https?:/i.test(query) ? query : `https://${query}`);
+      if (target) {
+        navigate(target);
+        return;
+      }
     }
     addSearch(query);
     navigate(`/results?search_query=${encodeURIComponent(query)}`);

@@ -30,7 +30,7 @@ import './watch.css';
 export function Watch() {
   const [params] = useSearchParams();
   const v = params.get('v') || '';
-  const t = parseStartTime(params.get('t'));
+  const t = parseStartTime(params.get('t') ?? params.get('start'));
   const list = params.get('list');
   const indexParam = Number(params.get('index') || 0);
   const load = usePlayerSession((s) => s.load);

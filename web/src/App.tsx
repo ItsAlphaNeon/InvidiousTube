@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { resolveYouTubeUrl } from './api/youtubeUrl';
 import { AppShell } from './components/layout/AppShell';
 import { Channel, ChannelResolver } from './pages/Channel';
 import { Channels, Hashtag, NotFound, Subscriptions, Trending } from './pages/Feeds';
@@ -29,12 +30,16 @@ function useThemeSync() {
   }, [theme]);
 }
 
-/** youtu.be/ID, /shorts/ID, /embed/ID, /live/ID → /watch */
-function ShortWatchRedirect() {
-  const { id } = useParams();
-  const [params] = useSearchParams();
-  const t = params.get('t');
-  return <Navigate to={`/watch?v=${id}${t ? `&t=${t}` : ''}`} replace />;
+/**
+ * Catch-all for YouTube URL shapes that aren't native routes here (youtu.be/ID, /shorts/ID,
+ * /embed/ID, /attribution_link, ...): swap youtube.com for this domain and the link still works.
+ */
+function LinkRedirect() {
+  const { pathname, search } = useLocation();
+  const target = resolveYouTubeUrl(pathname + search);
+  if (target && target !== pathname + search) return <Navigate to={target} replace />;
+  if (pathname.startsWith('/@')) return <ChannelResolver />;
+  return <NotFound />;
 }
 
 export function App() {
@@ -58,6 +63,7 @@ export function App() {
           <Route path="c/:name" element={<ChannelResolver />} />
           <Route path="c/:name/:tab" element={<ChannelResolver />} />
           <Route path="user/:name" element={<ChannelResolver />} />
+          <Route path="user/:name/:tab" element={<ChannelResolver />} />
           <Route path="hashtag/:tag" element={<Hashtag />} />
           <Route path="feed/trending" element={<Trending />} />
           <Route path="feed/explore" element={<Trending />} />
@@ -67,24 +73,13 @@ export function App() {
           <Route path="feed/playlists" element={<PlaylistsPage />} />
           <Route path="feed/library" element={<You />} />
           <Route path="feed/you" element={<You />} />
-          <Route path="shorts/:id" element={<ShortWatchRedirect />} />
-          <Route path="embed/:id" element={<ShortWatchRedirect />} />
-          <Route path="live/:id" element={<ShortWatchRedirect />} />
           <Route path="login" element={<Login />} />
           <Route path="settings" element={<Settings />} />
-          <Route path=":handle" element={<HandleRoute />} />
-          <Route path=":handle/:tab" element={<HandleRoute />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path=":handle" element={<LinkRedirect />} />
+          <Route path=":handle/:tab" element={<LinkRedirect />} />
+          <Route path="*" element={<LinkRedirect />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
-}
-
-/** "/@handle" routes; any other single-segment path is either an 11-char video ID (youtu.be style) or a 404. */
-function HandleRoute() {
-  const { handle = '' } = useParams();
-  if (handle.startsWith('@')) return <ChannelResolver />;
-  if (/^[\w-]{11}$/.test(handle)) return <Navigate to={`/watch?v=${handle}`} replace />;
-  return <NotFound />;
 }

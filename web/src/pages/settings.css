@@ -159,3 +159,24 @@ kbd {
     width: auto;
   }
 }
+
+.link-convert {
+  display: flex;
+  gap: 8px;
+  max-width: 640px;
+}
+.link-examples td {
+  font-size: 13px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+.link-examples td:last-child {
+  color: var(--text-1);
+  text-align: left;
+}
+.settings-content code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--layer-10);
+  font-size: 13px;
+}
