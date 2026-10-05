@@ -2,6 +2,8 @@
 
 A self-hosted frontend for [Invidious](https://invidious.io) that looks and behaves like the 2024 YouTube desktop site — home feed, watch page, player, channels, playlists, search, library — backed entirely by your own Invidious + invidious-companion instance.
 
+## DISCLAIMER - This was 100% AI Generated with Claude. This is for my personal use only, and only have it public for convienence.
+
 ## Features
 
 - **YouTube 2024 UI**: masthead with search suggestions & voice search, responsive guide (full / mini / drawer), chip bars, rich grid with hover previews and watch-progress bars, dark & light themes.
