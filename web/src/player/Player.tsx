@@ -66,7 +66,8 @@ export function Player(props: PlayerProps) {
   const [duration, setDuration] = useState(0);
   const [bufferedEnd, setBufferedEnd] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [loop, setLoop] = useState(false);
+  const loop = usePlayerSession((s) => s.loop);
+  const setLoop = usePlayerSession((s) => s.setLoop);
   const [fullscreen, setFullscreen] = useState(false);
   const [active, setActive] = useState(true);
   const [hoverControls, setHoverControls] = useState(false);

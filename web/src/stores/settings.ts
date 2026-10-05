@@ -44,6 +44,8 @@ interface SettingsState {
   hideShorts: boolean;
   /** mobile layout: a Shorts tab with a vertical swipe player */
   shortsTab: boolean;
+  /** experimental: Enhancer-style utility toolbar under the player (desktop) */
+  toolbar: boolean;
   ambientMode: boolean;
   sponsorblock: boolean;
   sbCategories: Record<SBCategory, SBAction>;
@@ -70,6 +72,7 @@ export const useSettings = create<SettingsState>()(
       hoverPreview: true,
       hideShorts: true,
       shortsTab: false,
+      toolbar: false,
       ambientMode: true,
       sponsorblock: true,
       sbCategories: {

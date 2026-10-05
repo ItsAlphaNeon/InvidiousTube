@@ -9,6 +9,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAuth } from '../stores/auth';
 import { useLibrary } from '../stores/library';
 import { SB_CATEGORIES, useSettings, type LayoutSetting, type SBAction, type ThemeSetting } from '../stores/settings';
+import { useToolbar } from '../stores/toolbar';
 import { toast } from '../stores/ui';
 import './settings.css';
 
@@ -135,6 +136,7 @@ function AccountSection() {
 }
 
 function PlaybackSection() {
+  const tb = useToolbar();
   const s = useSettings();
   return (
     <>
@@ -167,6 +169,20 @@ function PlaybackSection() {
         <Row title="Hide Shorts" desc="Keep YouTube Shorts out of your home feed, subscriptions, search, recommendations and autoplay">
           <Toggle on={s.hideShorts} onChange={(v) => s.set({ hideShorts: v })} />
         </Row>
+        <Row title="Utility toolbar (experimental)" desc="Desktop: a toolbar under the player with loop / A-B loop, volume booster, cinema mode, expand, pop-up, speed, video filters and screenshot">
+          <Toggle on={s.toolbar} onChange={(v) => s.set({ toolbar: v })} />
+        </Row>
+        {s.toolbar && (
+          <Row title="Volume booster level" desc="How much louder the booster makes videos">
+            <select className="settings-select" value={tb.boostLevel} onChange={(e) => tb.set({ boostLevel: Number(e.target.value) })}>
+              {[1.5, 2, 3, 4, 5, 6].map((n) => (
+                <option key={n} value={n}>
+                  {n}x
+                </option>
+              ))}
+            </select>
+          </Row>
+        )}
         <Row title="Shorts tab" desc="Mobile layout: add a Shorts tab with a full-screen swipe player (works alongside Hide Shorts, which only cleans up your feeds)">
           <Toggle on={s.shortsTab} onChange={(v) => s.set({ shortsTab: v })} />
         </Row>

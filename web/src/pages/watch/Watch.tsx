@@ -26,6 +26,8 @@ import { toast } from '../../stores/ui';
 import { Comments } from './Comments';
 import { Description } from './Description';
 import { PlaylistPanel } from './PlaylistPanel';
+import { WatchToolbar } from './Toolbar';
+import { useToolbar } from '../../stores/toolbar';
 import './watch.css';
 
 /** Loads the video in the URL into the persistent player and keeps the playlist context in sync. */
@@ -87,9 +89,12 @@ export const onTimestamp = (sec: number) => usePlayerSession.getState().requestS
 export function Watch() {
   const { list, video, isError, error } = useWatchSession();
   const session = usePlayerSession();
-  const theater = useSettings((s) => s.theater);
+  const toolbarOn = useSettings((s) => s.toolbar);
+  const expanded = useToolbar((s) => s.expanded) && toolbarOn;
+  const theater = useSettings((s) => s.theater) || expanded;
   const width = useWindowWidth();
   const twoColumns = width >= 1017;
+  const toolbar = toolbarOn && <WatchToolbar title={video?.title} />;
 
   const secondary = (
     <div className="watch-secondary">
@@ -99,7 +104,7 @@ export function Watch() {
   );
 
   return (
-    <div className={'watch-flexy' + (theater ? ' theater' : '')}>
+    <div className={'watch-flexy' + (theater ? ' theater' : '') + (expanded ? ' expanded' : '')}>
       {theater && (
         <div className="watch-full-bleed">
           <div className="watch-full-bleed-player">
@@ -107,6 +112,7 @@ export function Watch() {
           </div>
         </div>
       )}
+      {theater && toolbar}
       <div className="watch-columns">
         <div className="watch-primary">
           {!theater && (
@@ -117,6 +123,7 @@ export function Watch() {
               </div>
             </div>
           )}
+          {!theater && toolbar}
           {isError ? (
             <div className="watch-error">
               <h2>Video unavailable</h2>

@@ -5,6 +5,8 @@ import { Miniplayer } from '../../player/Miniplayer';
 import { PlayerHost } from '../../player/PlayerHost';
 import { usePlayerSession } from '../../stores/player';
 import { useUI } from '../../stores/ui';
+import { useSettings } from '../../stores/settings';
+import { ToolbarEffects } from '../../pages/watch/Toolbar';
 import { Toasts } from '../common/Toasts';
 import { TooltipLayer } from '../common/Tooltip';
 import { FullGuide, GuideDrawer, MiniGuide } from './Guide';
@@ -21,6 +23,7 @@ export function AppShell() {
   const drawerOpen = useUI((s) => s.drawerOpen);
   const toggleGuide = useUI((s) => s.toggleGuide);
   const closeDrawer = useUI((s) => s.closeDrawer);
+  const toolbarOn = useSettings((s) => s.toolbar);
 
   let mode: GuideMode;
   if (isWatch || width < 792) mode = 'none';
@@ -55,6 +58,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <PlayerHost />
+      {toolbarOn && <ToolbarEffects />}
       <Miniplayer />
       <Toasts />
       <TooltipLayer />
