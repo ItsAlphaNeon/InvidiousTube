@@ -1,0 +1,207 @@
+.playlist-page {
+  display: flex;
+  gap: 24px;
+  padding: 24px 24px 48px;
+  max-width: 1600px;
+}
+.playlist-header {
+  position: sticky;
+  top: calc(var(--masthead-height) + 24px);
+  flex: none;
+  width: 360px;
+  height: calc(100vh - var(--masthead-height) - 48px);
+  border-radius: 16px;
+  overflow: hidden;
+  color: #fff;
+  background: var(--pl-color);
+}
+.playlist-header-bg {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(50px) saturate(1.2);
+  opacity: 0.45;
+}
+.playlist-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, var(--pl-color) 70%);
+}
+.playlist-header-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+}
+.playlist-header-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+.playlist-header-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.playlist-header-thumb-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.playlist-header-thumb:hover .playlist-header-thumb-hover {
+  opacity: 1;
+}
+.playlist-title {
+  margin-top: 24px;
+  font-size: 28px;
+  line-height: 38px;
+  font-weight: 700;
+  word-break: break-word;
+}
+.playlist-owner {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.playlist-meta {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.playlist-privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.playlist-privacy .yt-icon {
+  fill: currentColor;
+}
+.playlist-icon-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.playlist-round {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.playlist-round:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.playlist-play-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.playlist-play-buttons .pill-btn {
+  flex: 1;
+  gap: 6px;
+}
+.playlist-playall {
+  background: #fff !important;
+  color: #0f0f0f !important;
+}
+.playlist-playall:hover {
+  background: #d9d9d9 !important;
+}
+.playlist-shuffle {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+.playlist-shuffle:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+.playlist-description {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  color: rgba(255, 255, 255, 0.85);
+}
+.playlist-videos {
+  flex: 1;
+  min-width: 0;
+}
+.playlist-video {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  border-radius: 12px;
+}
+.playlist-video:hover {
+  background: var(--layer-10);
+}
+.playlist-video-index {
+  width: 36px;
+  flex: none;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.playlist-video-thumb {
+  width: 160px;
+  flex: none;
+  margin-right: 8px;
+}
+.playlist-video-thumb .thumb {
+  border-radius: 8px;
+}
+.playlist-video-thumb .thumb-badge {
+  margin: 4px;
+}
+.playlist-video-meta {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+.playlist-video-title {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.playlist-video-sub {
+  font-size: 12px;
+  line-height: 18px;
+}
+.playlist-video-menu {
+  opacity: 0;
+}
+.playlist-video:hover .playlist-video-menu,
+.playlist-video-menu.open {
+  opacity: 1;
+}
+@media (max-width: 1000px) {
+  .playlist-page {
+    flex-direction: column;
+  }
+  .playlist-header {
+    position: relative;
+    top: 0;
+    width: 100%;
+    height: auto;
+  }
+  .playlist-header-thumb {
+    max-width: 480px;
+  }
+}

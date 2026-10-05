@@ -1,0 +1,115 @@
+.search-page {
+  max-width: 1298px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+.search-header {
+  position: sticky;
+  top: var(--masthead-height);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  background: var(--base-bg);
+}
+.search-chips {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+}
+.search-chips::-webkit-scrollbar {
+  display: none;
+}
+.search-filters-btn {
+  gap: 8px;
+  flex: none;
+}
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--cta);
+  color: var(--base-bg);
+  font-size: 11px;
+}
+.search-filter-modal {
+  width: 880px;
+  padding: 0 24px 24px;
+}
+.search-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+.search-filter-groups {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .search-filter-groups {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.search-filter-group h4 {
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+}
+.search-filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-2);
+  text-align: left;
+}
+.search-filter-option:hover {
+  color: var(--text-1);
+}
+.search-filter-option.on {
+  color: var(--text-1);
+  font-weight: 500;
+}
+.search-results {
+  padding-top: 4px;
+}
+.hashtag-result {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.hashtag-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 136px;
+  height: 136px;
+  margin: 0 calc((360px - 136px) / 2);
+  border-radius: 50%;
+  background: var(--layer-10);
+  font-size: 64px;
+}
+.hashtag-title {
+  display: block;
+  font-size: 18px;
+  line-height: 26px;
+}

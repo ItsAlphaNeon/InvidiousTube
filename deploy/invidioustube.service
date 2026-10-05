@@ -1,0 +1,30 @@
+[Unit]
+Description=InvidiousTube - YouTube-style frontend for Invidious
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=invidioustube
+Group=invidioustube
+WorkingDirectory=/opt/invidioustube
+EnvironmentFile=/etc/invidioustube.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /opt/invidioustube/server/src/index.js
+Restart=always
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/invidioustube
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

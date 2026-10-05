@@ -1,0 +1,101 @@
+.miniplayer {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1900;
+  width: 480px;
+  max-width: calc(100vw - 24px);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--raised-bg);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
+  animation: mini-in 0.2s cubic-bezier(0.05, 0, 0, 1);
+}
+[data-theme='dark'] .miniplayer {
+  background: #212121;
+}
+@keyframes mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+.miniplayer-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+.miniplayer-slot,
+.miniplayer-slot .player-host {
+  position: absolute;
+  inset: 0;
+}
+.miniplayer-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+.miniplayer-video:hover .miniplayer-controls {
+  opacity: 1;
+}
+.miniplayer-btn {
+  width: 48px;
+  height: 48px;
+  opacity: 0.9;
+}
+.miniplayer-btn:hover:not(:disabled) {
+  opacity: 1;
+}
+.miniplayer-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.miniplayer-expand {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.miniplayer-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.miniplayer-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.miniplayer-play {
+  width: 64px;
+  height: 64px;
+}
+.miniplayer-info {
+  padding: 10px 16px 12px;
+}
+.miniplayer-title {
+  display: block;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-1);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.miniplayer-channel {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,41 @@
+/* ---------------------------------------------------------------- home */
+.home-chips {
+  position: sticky;
+  top: var(--masthead-height);
+  z-index: 100;
+  background: var(--base-bg);
+  padding: 0 24px;
+}
+
+/* ---------------------------------------------------------------- generic feed pages */
+.feed-page {
+  max-width: 2200px;
+}
+.feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 0;
+}
+.feed-title {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+.feed-title-lg {
+  font-size: 36px;
+  line-height: 50px;
+  font-weight: 700;
+}
+.page-narrow {
+  max-width: 1096px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.section-title {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  margin: 24px 0 8px;
+}

@@ -1,0 +1,101 @@
+/* Design tokens mirroring YouTube's 2024 desktop "yt-spec" palette. */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --base-bg: #0f0f0f;
+  --raised-bg: #212121;
+  --menu-bg: #282828;
+  --brand-bg: #0f0f0f;
+  --text-1: #f1f1f1;
+  --text-2: #aaaaaa;
+  --text-disabled: #717171;
+  --layer-5: rgba(255, 255, 255, 0.05);
+  --layer-10: rgba(255, 255, 255, 0.1);
+  --layer-20: rgba(255, 255, 255, 0.2);
+  --layer-30: rgba(255, 255, 255, 0.3);
+  --outline: rgba(255, 255, 255, 0.2);
+  --divider: rgba(255, 255, 255, 0.2);
+  --chip-bg: rgba(255, 255, 255, 0.1);
+  --chip-hover: rgba(255, 255, 255, 0.2);
+  --chip-active-bg: #f1f1f1;
+  --chip-active-text: #0f0f0f;
+  --button-tonal: rgba(255, 255, 255, 0.1);
+  --button-tonal-hover: rgba(255, 255, 255, 0.2);
+  --button-filled-bg: #f1f1f1;
+  --button-filled-text: #0f0f0f;
+  --button-filled-hover: #d9d9d9;
+  --cta: #3ea6ff;
+  --cta-hover-bg: #263850;
+  --brand-red: #ff0000;
+  --error: #ff4e45;
+  --search-bg: #121212;
+  --search-border: #303030;
+  --search-btn-bg: #222222;
+  --search-focus: #1c62b9;
+  --suggest-bg: #212121;
+  --icon: #f1f1f1;
+  --icon-disabled: #717171;
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+  --badge-bg: rgba(0, 0, 0, 0.6);
+  --skeleton: rgba(255, 255, 255, 0.1);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --toast-bg: #f1f1f1;
+  --toast-text: #0f0f0f;
+  --shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.1);
+  --logo-text: #ffffff;
+  --verified: #aaaaaa;
+  --scrollbar: #717171;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --base-bg: #ffffff;
+  --raised-bg: #ffffff;
+  --menu-bg: #ffffff;
+  --brand-bg: #ffffff;
+  --text-1: #0f0f0f;
+  --text-2: #606060;
+  --text-disabled: #909090;
+  --layer-5: rgba(0, 0, 0, 0.05);
+  --layer-10: rgba(0, 0, 0, 0.1);
+  --layer-20: rgba(0, 0, 0, 0.2);
+  --layer-30: rgba(0, 0, 0, 0.3);
+  --outline: rgba(0, 0, 0, 0.1);
+  --divider: rgba(0, 0, 0, 0.1);
+  --chip-bg: rgba(0, 0, 0, 0.05);
+  --chip-hover: rgba(0, 0, 0, 0.1);
+  --chip-active-bg: #0f0f0f;
+  --chip-active-text: #ffffff;
+  --button-tonal: rgba(0, 0, 0, 0.05);
+  --button-tonal-hover: rgba(0, 0, 0, 0.1);
+  --button-filled-bg: #0f0f0f;
+  --button-filled-text: #ffffff;
+  --button-filled-hover: #272727;
+  --cta: #065fd4;
+  --cta-hover-bg: #def1ff;
+  --error: #cc0000;
+  --search-bg: #ffffff;
+  --search-border: #d3d3d3;
+  --search-btn-bg: #f8f8f8;
+  --search-focus: #1c62b9;
+  --suggest-bg: #ffffff;
+  --icon: #0f0f0f;
+  --icon-disabled: #909090;
+  --skeleton: rgba(0, 0, 0, 0.1);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --toast-bg: #0f0f0f;
+  --toast-text: #ffffff;
+  --shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.1);
+  --logo-text: #212121;
+  --verified: #606060;
+  --scrollbar: #909090;
+}
+
+:root {
+  --masthead-height: 56px;
+  --guide-width: 240px;
+  --mini-guide-width: 72px;
+  --font: 'Roboto', 'Arial', sans-serif;
+  --radius-thumb: 12px;
+  --radius-thumb-sm: 8px;
+}

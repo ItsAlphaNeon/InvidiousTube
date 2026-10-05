@@ -1,0 +1,42 @@
+.chipbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.chipbar-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  padding: 12px 0;
+  min-width: 0;
+  flex: 1;
+}
+.chipbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+.chipbar-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  width: 80px;
+  pointer-events: none;
+}
+.chipbar-arrow .icon-btn {
+  pointer-events: auto;
+}
+.chipbar-arrow.left {
+  left: 0;
+  justify-content: flex-start;
+  background: linear-gradient(to right, var(--base-bg) 20%, transparent 80%);
+}
+.chipbar-arrow.right {
+  right: 0;
+  justify-content: flex-end;
+  background: linear-gradient(to left, var(--base-bg) 20%, transparent 80%);
+}
