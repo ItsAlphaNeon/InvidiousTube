@@ -41,7 +41,8 @@ The script installs Node.js 22 (if needed), copies the app to `/opt/invidioustub
 
 - Logs: `journalctl -u invidioustube -f`
 - Config: `/etc/invidioustube.env` (restart with `sudo systemctl restart invidioustube`)
-- Update: `git pull && sudo ./deploy/update.sh`
+- **Updating**: `git pull` in your checkout, then reboot the container (or `sudo systemctl restart invidioustube`). The service rebuilds itself on start whenever the source changed, and keeps the previous build running if a rebuild fails. Set `AUTO_UPDATE=1` in the env file to have it `git pull` on every start as well.
+- If the systemd unit itself changed in an update, run `sudo ./deploy/update.sh` once (pulls, reinstalls the unit, restarts).
 
 ### Configuration
 
@@ -56,6 +57,8 @@ The script installs Node.js 22 (if needed), copies the app to `/opt/invidioustub
 | `ENABLE_SHORTS_CHECK` | `1` | Detect Shorts by asking youtube.com (only for videos ≤ 3 min or of unknown length) |
 | `COOKIE_SECURE` | `0` | Set to `1` when serving over HTTPS (marks the login cookie `Secure`) |
 | `IMAGE_CACHE_MB` | `256` | In-memory thumbnail cache size |
+| `SOURCE_DIR` | install checkout | Git checkout the service rebuilds from on start |
+| `AUTO_UPDATE` | `0` | `1` = `git pull` the checkout on every start |
 
 ### Reverse proxy / HTTPS (optional)
 
