@@ -13,6 +13,7 @@ A self-hosted frontend for [Invidious](https://invidious.io) that looks and beha
 - **SponsorBlock**: per-category skip / skip-button / show-only, segments on the seek bar, “Skipped sponsor · Undo” notice.
 - **Accounts – your choice**: works fully logged out (subscriptions, history, Watch later, likes and playlists stored in the browser), or sign in with your Invidious account to sync subscriptions, history and playlists. Local subscriptions can be imported into the account.
 - **Link redirect**: swap `www.youtube.com` / `youtu.be` for your InvidiousTube domain in any YouTube link and it opens here — videos (with timestamps and playlists), Shorts, live, embeds, channels (`/@handle`, `/channel/…`, `/c/…`, `/user/…`), playlists and searches. Pasting a YouTube link into the search box works too, and Settings → Link redirect has a converter and a bookmarklet.
+- **Discord / chat embeds**: paste a video link (`/watch?v=…`, `/<id>`, `/shorts/<id>`, …) into Discord and it unfurls like a real YouTube link — channel name, title, description, red accent and a 360p video that plays right in the chat. Clicking the title opens the watch page (in Discord's built-in browser on mobile). Works with Telegram, Slack, Mastodon, etc. too. Your instance has to be reachable from the internet for the chat app to fetch the preview.
 - **Import / export**: YouTube Takeout CSV, NewPipe/Invidious JSON, FreeTube/RSS OPML, and full library backups.
 
 ## Utility toolbar (experimental)
@@ -40,7 +41,10 @@ Browser ──► InvidiousTube (Node, :8080)
               ├─ /auth/*                            Invidious login → httpOnly session cookie
               ├─ /x/feed                            subscription feed for logged-out users
               ├─ /x/sponsorblock, /x/ryd            cached SponsorBlock / RYD lookups
+              ├─ /x/oembed, /x/embed/<id>.mp4       link-preview metadata + inline video (itag 18 via companion)
 ```
+
+Video pages requested by chat-app crawlers (Discordbot, Telegram, Slack, …) get Open Graph / Twitter / oEmbed tags injected into the HTML server side.
 
 Everything is same-origin, so the browser never needs direct access to Invidious or companion — only the InvidiousTube server does.
 
@@ -72,6 +76,9 @@ The script installs Node.js 22 (if needed), copies the app to `/opt/invidioustub
 | `ENABLE_SHORTS_CHECK` | `1` | Detect Shorts by asking youtube.com (only for videos ≤ 3 min or of unknown length) |
 | `COOKIE_SECURE` | `0` | Set to `1` when serving over HTTPS (marks the login cookie `Secure`) |
 | `IMAGE_CACHE_MB` | `256` | In-memory thumbnail cache size |
+| `PUBLIC_URL` | request host | Public address (e.g. `https://tube.example.com`) used for absolute URLs in link previews |
+| `EMBED_SITE_NAME` | `YouTube` | Site name shown on Discord / chat link previews |
+| `EMBED_VIDEO` | `1` | `0` = link previews show only the thumbnail instead of an inline-playable 360p video |
 | `SOURCE_DIR` | install checkout | Git checkout the service rebuilds from on start |
 | `AUTO_UPDATE` | `0` | `1` = `git pull` the checkout on every start |
 

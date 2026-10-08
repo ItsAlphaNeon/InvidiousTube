@@ -2,7 +2,10 @@ import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +19,9 @@ const ENABLE_SPONSORBLOCK = process.env.ENABLE_SPONSORBLOCK !== '0';
 const ENABLE_RYD = process.env.ENABLE_RYD !== '0';
 const ENABLE_SHORTS_CHECK = process.env.ENABLE_SHORTS_CHECK !== '0';
 const COOKIE_SECURE = process.env.COOKIE_SECURE === '1';
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+const EMBED_SITE_NAME = process.env.EMBED_SITE_NAME || 'YouTube';
+const EMBED_VIDEO = process.env.EMBED_VIDEO !== '0';
 const DIST_DIR = path.resolve(__dirname, '../../web/dist');
 
 const SID_COOKIE = 'itube_sid';
@@ -64,6 +70,9 @@ class TTLCache {
   set(key, value, ttlMs) {
     if (this.map.size >= this.max) this.map.delete(this.map.keys().next().value);
     this.map.set(key, { value, exp: Date.now() + ttlMs });
+  }
+  delete(key) {
+    this.map.delete(key);
   }
 }
 
@@ -423,6 +432,254 @@ app.get('/x/ryd/:videoId', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------- link previews (Discord & co.)
+// Chat apps don't run JavaScript, so video pages get Open Graph / Twitter / oEmbed tags injected
+// into index.html on the server. og:video points at a progressive MP4 (itag 18) streamed through
+// companion, which Discord plays inline like a real YouTube embed; the title links to the watch page.
+
+const VIDEO_ID = /^[\w-]{11}$/;
+const PREVIEW_BOT =
+  /bot\b|crawler|spider|facebookexternalhit|embedly|iframely|discord|slack|telegram|whatsapp|skype|mastodon|pleroma|misskey|synapse|bluesky|cardyb|vkshare|curl\/|wget\//i;
+// Discord also unfurls links with this exact, otherwise long-dead, browser user agent
+const DISCORD_FIREFOX_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11.6; rv:92.0) Gecko/20100101 Firefox/92.0';
+
+function isPreviewBot(req) {
+  const ua = req.headers['user-agent'] || '';
+  return PREVIEW_BOT.test(ua) || ua === DISCORD_FIREFOX_UA;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+function publicOrigin(req) {
+  return PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+}
+
+/** The video a YouTube-shaped path points at (/watch?v=, youtu.be-style /ID, /shorts/ID, ...). */
+function videoFromPath(pathname, query) {
+  const parts = pathname.split('/').filter(Boolean);
+  const [first = '', second = ''] = parts;
+  if (first === 'watch') {
+    const v = String(query.v || '') || second;
+    return VIDEO_ID.test(v) ? v : null;
+  }
+  if (/^(?:shorts|live|embed|v|e)$/.test(first)) return VIDEO_ID.test(second) ? second : null;
+  if (parts.length === 1 && VIDEO_ID.test(first)) return first;
+  return null;
+}
+
+function previewDescription(text = '') {
+  const s = text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+  return s.length > 300 ? `${s.slice(0, 297).trimEnd()}…` : s;
+}
+
+/** Width x height of the embedded MP4: itag 18 when listed, else 360p in the video's aspect ratio. */
+function embedVideoSize(v) {
+  const sizeOf = (f) => String(f?.size || '').split('x').map(Number);
+  const [w, h] = sizeOf((v.formatStreams || []).find((f) => String(f.itag) === '18'));
+  if (w > 0 && h > 0) return { width: w, height: h };
+  const [aw, ah] = sizeOf((v.adaptiveFormats || []).find((f) => /^video\//.test(f.type || '') && f.size));
+  if (aw > 0 && ah > 0) return aw >= ah ? { width: Math.round((360 * aw) / ah), height: 360 } : { width: 360, height: Math.round((360 * ah) / aw) };
+  return { width: 640, height: 360 };
+}
+
+const previewCache = new TTLCache(1000);
+const previewInflight = new Map();
+
+function loadPreview(id) {
+  const cached = previewCache.get(id);
+  if (cached) return Promise.resolve(cached);
+  let p = previewInflight.get(id);
+  if (p) return p;
+  p = (async () => {
+    const v = await fetchJson(`${INVIDIOUS_URL}/api/v1/videos/${id}`, {}, 10000);
+    // Prefer the 1280x720 thumbnail (warming the image cache for the crawler's follow-up fetch)
+    let thumb = { path: `/vi/${id}/hqdefault.jpg`, width: 480, height: 360 };
+    const maxresPath = `/vi/${id}/maxresdefault.jpg`;
+    const maxres = await fetchImage(maxresPath).catch(() => null);
+    if (maxres?.status === 200) {
+      cacheImage(maxresPath, { ...maxres, exp: Date.now() + 6 * 60 * 60 * 1000 });
+      thumb = { path: maxresPath, width: 1280, height: 720 };
+    }
+    const preview = {
+      id,
+      title: v.title || 'Video',
+      author: v.author || '',
+      authorId: v.authorId || '',
+      description: previewDescription(v.description),
+      lengthSeconds: v.lengthSeconds || 0,
+      thumb,
+      video: EMBED_VIDEO && !v.liveNow && !v.isUpcoming ? embedVideoSize(v) : null,
+    };
+    previewCache.set(id, preview, 60 * 60 * 1000);
+    return preview;
+  })().finally(() => previewInflight.delete(id));
+  previewInflight.set(id, p);
+  return p;
+}
+
+function previewTags(p, req) {
+  const origin = publicOrigin(req);
+  const q = new URLSearchParams({ v: p.id });
+  for (const k of ['t', 'list', 'index']) if (req.query[k]) q.set(k, String(req.query[k]));
+  const pageUrl = `${origin}/watch?${q}`;
+  const image = `${origin}${p.thumb.path}`;
+  const tags = [
+    ['property', 'og:site_name', EMBED_SITE_NAME],
+    ['property', 'og:url', pageUrl],
+    ['property', 'og:title', p.title],
+    ['property', 'og:description', p.description],
+    ['property', 'og:image', image],
+    ['property', 'og:image:width', p.thumb.width],
+    ['property', 'og:image:height', p.thumb.height],
+    ['name', 'twitter:site', EMBED_SITE_NAME],
+    ['name', 'twitter:title', p.title],
+    ['name', 'twitter:description', p.description],
+    ['name', 'twitter:image', image],
+  ];
+  if (p.video) {
+    const src = `${origin}/x/embed/${p.id}.mp4`;
+    tags.push(
+      ['property', 'og:type', 'video.other'],
+      ['property', 'og:video', src],
+      ['property', 'og:video:url', src],
+      ...(src.startsWith('https:') ? [['property', 'og:video:secure_url', src]] : []),
+      ['property', 'og:video:type', 'video/mp4'],
+      ['property', 'og:video:width', p.video.width],
+      ['property', 'og:video:height', p.video.height],
+      ['name', 'twitter:card', 'player'],
+      ['name', 'twitter:player:stream', src],
+      ['name', 'twitter:player:stream:content_type', 'video/mp4'],
+      ['name', 'twitter:player:width', p.video.width],
+      ['name', 'twitter:player:height', p.video.height],
+    );
+    if (p.lengthSeconds) tags.push(['property', 'video:duration', p.lengthSeconds]);
+  } else {
+    tags.push(['property', 'og:type', 'website'], ['name', 'twitter:card', 'summary_large_image']);
+  }
+  const oembed = `${origin}/x/oembed?id=${p.id}`;
+  return [
+    ...tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`),
+    `<link rel="alternate" type="application/json+oembed" href="${escapeHtml(oembed)}" title="${escapeHtml(p.title)}" />`,
+  ].join('\n    ');
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((resolve) => setTimeout(resolve, ms, null))]);
+}
+
+/** index.html with preview tags for a video page, or null when the path isn't one. */
+async function renderVideoIndex(req) {
+  const id = videoFromPath(req.path, req.query);
+  if (!id) return null;
+  const bot = isPreviewBot(req);
+  // Crawlers wait for the lookup; people only get tags that are already cached (no added latency)
+  const p = bot ? await withTimeout(loadPreview(id).catch(() => null), 8000) : previewCache.get(id);
+  if (!p) return null;
+  let html = await readFile(path.join(DIST_DIR, 'index.html'), 'utf8');
+  html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(`${p.title} - ${EMBED_SITE_NAME}`)}</title>`);
+  // Discord colours the embed's side bar with theme-color; the app resets it on load for people
+  if (bot) html = html.replace(/(<meta name="theme-color" content=")[^"]*/, (_m, pre) => `${pre}#ff0000`);
+  return html.replace('</head>', () => `  ${previewTags(p, req)}\n  </head>`);
+}
+
+// oEmbed supplies the channel name / link shown above the title, like YouTube's own embeds
+app.get('/x/oembed', async (req, res) => {
+  let id = String(req.query.id || '');
+  if (!VIDEO_ID.test(id)) {
+    try {
+      const u = new URL(String(req.query.url || ''));
+      id = videoFromPath(u.pathname, Object.fromEntries(u.searchParams)) || '';
+    } catch {}
+  }
+  if (!VIDEO_ID.test(id)) return res.status(404).json({ error: 'Not a video link' });
+  const p = await loadPreview(id).catch(() => null);
+  if (!p) return res.status(404).json({ error: 'Video unavailable' });
+  const origin = publicOrigin(req);
+  res.set('cache-control', 'public, max-age=3600');
+  res.json({
+    version: '1.0',
+    type: 'link',
+    title: p.title,
+    author_name: p.author,
+    author_url: p.authorId ? `${origin}/channel/${p.authorId}` : `${origin}/`,
+    provider_name: EMBED_SITE_NAME,
+    provider_url: `${origin}/`,
+    thumbnail_url: `${origin}${p.thumb.path}`,
+    thumbnail_width: p.thumb.width,
+    thumbnail_height: p.thumb.height,
+  });
+});
+
+// Progressive MP4 for og:video. The companion stream URL is resolved once and cached; range
+// requests (seeking in Discord's player) are passed straight through.
+const embedStreamCache = new TTLCache(500);
+
+async function resolveEmbedStream(id) {
+  const hit = embedStreamCache.get(id);
+  if (hit) return hit;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const r = await fetch(`${COMPANION_URL}/companion/latest_version?id=${id}&itag=18&local=true`, {
+      redirect: 'manual',
+      signal: ctrl.signal,
+    });
+    await r.body?.cancel();
+    const loc = r.headers.get('location');
+    if (r.status < 300 || r.status >= 400 || !loc) {
+      const err = new Error(`companion latest_version returned ${r.status}`);
+      err.status = r.status >= 400 ? r.status : 502;
+      throw err;
+    }
+    const url = new URL(loc, `${COMPANION_URL}/companion/`).toString();
+    embedStreamCache.set(id, url, 60 * 60 * 1000);
+    return url;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+app.get(/^\/x\/embed\/([\w-]{11})\.mp4$/, async (req, res) => {
+  if (!EMBED_VIDEO) return res.status(404).end();
+  const id = req.params[0];
+  const ctrl = new AbortController();
+  res.on('close', () => ctrl.abort());
+  const headers = req.headers.range ? { range: req.headers.range } : {};
+  try {
+    let upstream;
+    for (let attempt = 0; ; attempt++) {
+      upstream = await fetch(await resolveEmbedStream(id), { headers, signal: ctrl.signal });
+      if (upstream.ok || upstream.status === 416 || attempt) break;
+      // stream URLs expire: resolve a fresh one and try again once
+      await upstream.body?.cancel();
+      embedStreamCache.delete(id);
+    }
+    if (!upstream.ok) {
+      await upstream.body?.cancel();
+      return res.status(upstream.status === 416 ? 416 : 502).end();
+    }
+    res.status(upstream.status);
+    for (const h of ['content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag']) {
+      const v = upstream.headers.get(h);
+      if (v) res.setHeader(h, v);
+    }
+    res.setHeader('content-type', 'video/mp4');
+    res.setHeader('cache-control', 'public, max-age=3600');
+    if (req.method === 'HEAD' || !upstream.body) {
+      await upstream.body?.cancel();
+      return res.end();
+    }
+    await pipeline(Readable.fromWeb(upstream.body), res);
+  } catch (e) {
+    if (ctrl.signal.aborted) return;
+    console.error('[embed video]', e.message);
+    if (!res.headersSent) res.status(e.status === 404 ? 404 : 502).end();
+    else res.destroy();
+  }
+});
+
 // ---------------------------------------------------------------- static SPA
 
 if (existsSync(DIST_DIR)) {
@@ -438,9 +695,15 @@ if (existsSync(DIST_DIR)) {
       setHeaders: (res, file) => /(?:sw\.js|\.webmanifest)$/.test(file) && res.setHeader('Cache-Control', 'no-cache'),
     }),
   );
-  app.get('*', (req, res, next) => {
-    if (req.method !== 'GET' || req.path.startsWith('/x/') || req.path.startsWith('/auth/')) return next();
+  app.get('*', async (req, res, next) => {
+    if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/x/') || req.path.startsWith('/auth/')) return next();
     res.setHeader('Cache-Control', 'no-cache');
+    try {
+      const html = await renderVideoIndex(req);
+      if (html) return res.vary('User-Agent').type('html').send(html);
+    } catch (e) {
+      console.error('[link preview]', e.message);
+    }
     res.sendFile(path.join(DIST_DIR, 'index.html'));
   });
 } else {
