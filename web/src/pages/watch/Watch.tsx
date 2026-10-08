@@ -28,6 +28,9 @@ import { Description } from './Description';
 import { PlaylistPanel } from './PlaylistPanel';
 import { WatchToolbar } from './Toolbar';
 import { useToolbar } from '../../stores/toolbar';
+import { watchTogether } from '../../party/PartyDialogs';
+import { PartyPanel } from '../../party/PartyPanel';
+import { useInParty } from '../../party/store';
 import './watch.css';
 
 /** Loads the video in the URL into the persistent player and keeps the playlist context in sync. */
@@ -95,9 +98,11 @@ export function Watch() {
   const width = useWindowWidth();
   const twoColumns = width >= 1017;
   const toolbar = toolbarOn && <WatchToolbar title={video?.title} />;
+  const inParty = useInParty();
 
   const secondary = (
     <div className="watch-secondary">
+      {inParty && <PartyPanel />}
       {session.playlist && list && <PlaylistPanel playlist={session.playlist} />}
       <Related video={video ?? null} />
     </div>
@@ -184,6 +189,7 @@ function WatchMetadata({ video, onTimestamp }: { video: VideoDetails; onTimestam
   const [moreOpen, setMoreOpen] = useState(false);
   const width = useWindowWidth();
 
+  const inParty = useInParty();
   const avatar = avatarUrl(video.authorThumbnails, 40);
   const showSaveInline = width >= 1300 || width < 1017;
 
@@ -235,6 +241,10 @@ function WatchMetadata({ video, onTimestamp }: { video: VideoDetails; onTimestam
           <button className="pill-btn icon-leading" onClick={() => setDialog('share')}>
             <Icon name="share" />
             Share
+          </button>
+          <button className="pill-btn icon-leading" onClick={() => watchTogether(video.videoId)} data-tooltip={inParty ? 'Invite friends to your watch party' : 'Watch with friends in sync'}>
+            <Icon name="party" />
+            {inParty ? 'Invite' : 'Watch together'}
           </button>
           <a className="pill-btn icon-leading" href={`/companion/latest_version?id=${video.videoId}&itag=18&local=true`} target="_blank" rel="noreferrer" download>
             <Icon name="download" />

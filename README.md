@@ -13,6 +13,7 @@ A self-hosted frontend for [Invidious](https://invidious.io) that looks and beha
 - **SponsorBlock**: per-category skip / skip-button / show-only, segments on the seek bar, “Skipped sponsor · Undo” notice.
 - **Accounts – your choice**: works fully logged out (subscriptions, history, Watch later, likes and playlists stored in the browser), or sign in with your Invidious account to sync subscriptions, history and playlists. Local subscriptions can be imported into the account.
 - **Link redirect**: swap `www.youtube.com` / `youtu.be` for your InvidiousTube domain in any YouTube link and it opens here — videos (with timestamps and playlists), Shorts, live, embeds, channels (`/@handle`, `/channel/…`, `/c/…`, `/user/…`), playlists and searches. Pasting a YouTube link into the search box works too, and Settings → Link redirect has a converter and a bookmarklet.
+- **Watch parties**: hit *Watch together* under any video (or in a video's ⋮ menu) and share the link. Everyone who joins stays in sync — play, pause, seek and speed — and anyone can click a video to switch the whole party to it. YouTube-live-chat-style panel with **chat**, a shared **queue** (⋮ → *Add to party queue*, drag to reorder, auto-advance) and **people** list. The host can lock the party, kick people, hand over host, and toggle who may pick videos, control playback or queue, queue-instead-of-play, speed sync, autoplay and chat. No accounts needed (just a nickname); party links unfurl in Discord as "Join <host>'s watch party" with what's playing. Parties live in memory and end 30 minutes after the last person leaves.
 - **Discord / chat embeds**: paste a video link (`/watch?v=…`, `/<id>`, `/shorts/<id>`, …) into Discord and it unfurls like a real YouTube link — channel name, title, description, red accent and a 360p video that plays right in the chat. Clicking the title opens the watch page (in Discord's built-in browser on mobile). Works with Telegram, Slack, Mastodon, etc. too. Your instance has to be reachable from the internet for the chat app to fetch the preview.
 - **Import / export**: YouTube Takeout CSV, NewPipe/Invidious JSON, FreeTube/RSS OPML, and full library backups.
 
@@ -42,6 +43,7 @@ Browser ──► InvidiousTube (Node, :8080)
               ├─ /x/feed                            subscription feed for logged-out users
               ├─ /x/sponsorblock, /x/ryd            cached SponsorBlock / RYD lookups
               ├─ /x/oembed, /x/embed/<id>.mp4       link-preview metadata + inline video (itag 18 via companion)
+              ├─ /x/party, /x/party/ws              watch parties (REST + WebSocket sync)
 ```
 
 Video pages requested by chat-app crawlers (Discordbot, Telegram, Slack, …) get Open Graph / Twitter / oEmbed tags injected into the HTML server side.
@@ -92,7 +94,7 @@ tube.example.lan {
 }
 ```
 
-For nginx make sure buffering is off for streams: `proxy_buffering off; proxy_request_buffering off;`. Set `COOKIE_SECURE=1` when using HTTPS.
+For nginx make sure buffering is off for streams: `proxy_buffering off; proxy_request_buffering off;`, and pass WebSocket upgrades through for watch parties: `proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade";` (Caddy does this automatically). Set `COOKIE_SECURE=1` when using HTTPS.
 
 ## Development
 

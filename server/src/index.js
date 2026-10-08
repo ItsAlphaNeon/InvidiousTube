@@ -7,6 +7,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
+import { createParties } from './party.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -570,7 +571,44 @@ function withTimeout(promise, ms) {
 }
 
 /** index.html with preview tags for a video page, or null when the path isn't one. */
+/** Open Graph tags for a watch-party invite: "Join Alex's watch party", with the current video. */
+async function partyTags(req, id) {
+  const info = parties.info(id);
+  if (!info) return null;
+  const origin = publicOrigin(req);
+  const video = info.videoId ? await withTimeout(loadPreview(info.videoId).catch(() => null), 6000) : null;
+  const title = `Join ${info.ownerName}'s watch party`;
+  const watching = `${info.watching} watching`;
+  const description = video ? `Now watching: ${video.title} · ${watching}` : `Pick videos and watch them together in sync · ${watching}`;
+  const image = video ? { url: `${origin}${video.thumb.path}`, width: video.thumb.width, height: video.thumb.height } : { url: `${origin}/icons/icon-512.png`, width: 512, height: 512 };
+  const tags = [
+    ['property', 'og:site_name', EMBED_SITE_NAME],
+    ['property', 'og:type', 'website'],
+    ['property', 'og:url', `${origin}/party/${info.id}`],
+    ['property', 'og:title', title],
+    ['property', 'og:description', description],
+    ['property', 'og:image', image.url],
+    ['property', 'og:image:width', image.width],
+    ['property', 'og:image:height', image.height],
+    ['name', 'twitter:card', video ? 'summary_large_image' : 'summary'],
+    ['name', 'twitter:title', title],
+    ['name', 'twitter:description', description],
+    ['name', 'twitter:image', image.url],
+  ];
+  return { title, html: tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`).join('\n    ') };
+}
+
 async function renderVideoIndex(req) {
+  const partyMatch = req.path.match(/^\/party\/([A-Za-z0-9]{8})\/?$/);
+  if (partyMatch) {
+    if (!isPreviewBot(req)) return null;
+    const tags = await partyTags(req, partyMatch[1]);
+    if (!tags) return null;
+    let html = await readFile(path.join(DIST_DIR, 'index.html'), 'utf8');
+    html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(tags.title)}</title>`);
+    html = html.replace(/(<meta name="theme-color" content=")[^"]*/, (_m, pre) => `${pre}#ff0000`);
+    return html.replace('</head>', () => `  ${tags.html}\n  </head>`);
+  }
   const id = videoFromPath(req.path, req.query);
   if (!id) return null;
   const bot = isPreviewBot(req);
@@ -583,6 +621,11 @@ async function renderVideoIndex(req) {
   if (bot) html = html.replace(/(<meta name="theme-color" content=")[^"]*/, (_m, pre) => `${pre}#ff0000`);
   return html.replace('</head>', () => `  ${previewTags(p, req)}\n  </head>`);
 }
+
+// ---------------------------------------------------------------- watch parties
+
+const parties = createParties({ lookupVideo: loadPreview });
+app.use(parties.router);
 
 // oEmbed supplies the channel name / link shown above the title, like YouTube's own embeds
 app.get('/x/oembed', async (req, res) => {
@@ -712,9 +755,10 @@ if (existsSync(DIST_DIR)) {
   );
 }
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`InvidiousTube listening on http://${HOST}:${PORT}`);
   console.log(`  Invidious: ${INVIDIOUS_URL}`);
   console.log(`  Companion: ${COMPANION_URL}/companion`);
   console.log(`  SponsorBlock: ${ENABLE_SPONSORBLOCK ? 'on' : 'off'}, RYD: ${ENABLE_RYD ? 'on' : 'off'}`);
 });
+parties.attach(server);

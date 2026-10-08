@@ -12,6 +12,7 @@ import { useUI } from '../stores/ui';
 import { MobileMiniplayer } from './MobileMiniplayer';
 import { MobileSearch } from './MobileSearch';
 import { MobileWatch } from './MobileWatch';
+import { PartyPill } from '../party/PartyDialogs';
 import './mobile.css';
 
 const HOME_LOCATION: Location = { pathname: '/', search: '', hash: '', state: null, key: 'm-home' };
@@ -141,6 +142,7 @@ function MobileTopBar({ pathname, search }: { pathname: string; search: string }
         <Logo brand={brand} />
       </Link>
       <div className="m-topbar-end">
+        <PartyPill mobile />
         {(loggedIn || subs.length > 0) && <NotificationsButton />}
         <button className="m-icon-btn" onClick={openSearch} aria-label="Search">
           <Icon name="search" />

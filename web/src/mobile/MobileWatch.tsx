@@ -19,8 +19,11 @@ import { useLibrary } from '../stores/library';
 import { usePlayerSession } from '../stores/player';
 import { toast } from '../stores/ui';
 import { Sheet } from './Sheet';
+import { watchTogether } from '../party/PartyDialogs';
+import { AvatarStack, PartyPanel, PartySheetActions } from '../party/PartyPanel';
+import { useParty } from '../party/store';
 
-type Panel = null | 'description' | 'comments' | 'playlist';
+type Panel = null | 'description' | 'comments' | 'playlist' | 'party';
 
 /** The app's watch view: player pinned on top, details and recommendations scrolling underneath. */
 export function MobileWatch() {
@@ -72,6 +75,7 @@ export function MobileWatch() {
                   <Icon name="chevronDown" />
                 </button>
               )}
+              <PartyCard onOpen={() => setPanel('party')} />
               <CommentsTeaser videoId={video.videoId} onOpen={() => setPanel('comments')} />
             </>
           ) : (
@@ -94,6 +98,11 @@ export function MobileWatch() {
             <Comments videoId={video.videoId} onTimestamp={seekTo} />
           </Sheet>
         )}
+        {panel === 'party' && (
+          <Sheet variant="panel" title="Watch party" actions={<PartySheetActions />} onClose={() => setPanel(null)}>
+            <PartyPanel sheet />
+          </Sheet>
+        )}
         {panel === 'playlist' && playlist && (
           <Sheet variant="panel" title="Playlist" onClose={() => setPanel(null)}>
             <PlaylistPanel playlist={playlist} />
@@ -101,6 +110,29 @@ export function MobileWatch() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Watch-party summary under the video (like the playlist card); opens the chat/queue sheet. */
+function PartyCard({ onOpen }: { onOpen: () => void }) {
+  const partyId = useParty((s) => s.partyId);
+  const members = useParty((s) => s.members);
+  const lastChat = useParty((s) => [...s.chat].reverse().find((m) => m.kind === 'user'));
+  const queued = useParty((s) => s.queue.length);
+  if (!partyId) return null;
+  const watching = members.filter((m) => m.connected).length;
+  return (
+    <button className="mw-playlist-card mw-party-card" onClick={onOpen}>
+      <AvatarStack members={members} max={3} />
+      <div className="mw-playlist-text">
+        <div className="mw-playlist-title">
+          <span className="mw-party-live" />
+          Watch party · {watching} watching
+        </div>
+        <div className="mw-playlist-sub">{lastChat ? `${lastChat.name}: ${lastChat.text}` : queued ? `${queued} in queue` : 'Chat, queue and people'}</div>
+      </div>
+      <Icon name="chevronDown" />
+    </button>
   );
 }
 
@@ -194,6 +226,10 @@ function MobileWatchMeta({ video, onOpen }: { video: VideoDetails; onOpen: (p: P
         <button className="mw-pill" onClick={() => setDialog('share')}>
           <Icon name="share" />
           Share
+        </button>
+        <button className="mw-pill" onClick={() => watchTogether(video.videoId)}>
+          <Icon name="party" />
+          Watch together
         </button>
         <button className="mw-pill" onClick={() => setDialog('save')}>
           <Icon name="save" />

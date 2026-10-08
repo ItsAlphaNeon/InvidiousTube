@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../icons';
 import { useLibrary } from '../../stores/library';
 import { toast } from '../../stores/ui';
@@ -6,6 +7,8 @@ import { Menu, MenuDivider, MenuItem } from '../common/Menu';
 import { SaveDialog } from '../common/SaveDialog';
 import { ShareDialog } from '../common/ShareDialog';
 import { toLiteFromCard, type CardVideo } from './model';
+import { watchTogether } from '../../party/PartyDialogs';
+import { useParty } from '../../party/store';
 
 interface Props {
   video: CardVideo;
@@ -22,6 +25,8 @@ export function VideoMenu({ video, extra, className, onNotInterested }: Props) {
   const toggleWL = useLibrary((s) => s.toggleWatchLater);
   const inWL = useLibrary((s) => s.watchLater.some((v) => v.videoId === video.videoId));
   const markNotInterested = useLibrary((s) => s.markNotInterested);
+  const inParty = useParty((s) => !!s.partyId);
+  const navigate = useNavigate();
   const close = () => setOpen(false);
   return (
     <>
@@ -38,6 +43,21 @@ export function VideoMenu({ video, extra, className, onNotInterested }: Props) {
         <Icon name="moreVert" />
       </button>
       <Menu anchor={ref} open={open} onClose={close} minWidth={250}>
+        {inParty ? (
+          <>
+            <MenuItem icon="queue" onClick={() => (close(), useParty.getState().send({ t: 'queue.add', videoId: video.videoId }))}>
+              Add to party queue
+            </MenuItem>
+            <MenuItem icon="party" onClick={() => (close(), navigate(`/watch?v=${video.videoId}`))}>
+              Play for everyone
+            </MenuItem>
+          </>
+        ) : (
+          <MenuItem icon="party" onClick={() => (close(), watchTogether(video.videoId))}>
+            Watch together
+          </MenuItem>
+        )}
+        <MenuDivider />
         <MenuItem
           icon="watchLater"
           onClick={() => {

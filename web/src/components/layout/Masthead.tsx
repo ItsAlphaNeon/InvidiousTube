@@ -12,6 +12,7 @@ import { toast } from '../../stores/ui';
 import { Avatar } from '../common/Avatar';
 import { Menu, MenuDivider, MenuItem } from '../common/Menu';
 import { SearchBox } from './SearchBox';
+import { PartyPill } from '../../party/PartyDialogs';
 import { useShortsFilter } from '../../hooks/useShortsFilter';
 
 export function Masthead({ onMenu }: { onMenu: () => void }) {
@@ -45,6 +46,7 @@ export function Masthead({ onMenu }: { onMenu: () => void }) {
       </div>
       <div className="masthead-center">{!narrow && <SearchBox />}</div>
       <div className="masthead-end">
+        <PartyPill mobile={narrow} />
         {narrow && (
           <button className="icon-btn" onClick={() => setSearchMode(true)} aria-label="Search">
             <Icon name="search" />

@@ -12,6 +12,8 @@ import { Search } from './pages/Search';
 import { Settings } from './pages/Settings';
 import { Watch } from './pages/watch/Watch';
 import { MobileShell } from './mobile/MobileShell';
+import { JoinParty, PartyDialogs } from './party/PartyDialogs';
+import { PartySync } from './party/PartySync';
 import { MobileYou } from './mobile/MobileYou';
 import { ShortsPage } from './mobile/Shorts';
 import { useIsMobile, useMobileClass } from './mobile/useIsMobile';
@@ -88,6 +90,7 @@ export function pageRoutes(mobile: boolean, shortsTab = false) {
       <Route path="login" element={<Login />} />
       <Route path="settings" element={<Settings />} />
       <Route path="share" element={<ShareTarget />} />
+      <Route path="party/:id" element={<JoinParty />} />
       {mobile && shortsTab && <Route path="shorts/:id?" element={<ShortsPage />} />}
       <Route path=":handle" element={<LinkRedirect />} />
       <Route path=":handle/:tab" element={<LinkRedirect />} />
@@ -108,6 +111,8 @@ export function App() {
 
   return (
     <BrowserRouter>
+      <PartySync />
+      <PartyDialogs />
       {mobile ? (
         <MobileShell routes={pageRoutes(true, shortsTab)} />
       ) : (

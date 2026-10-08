@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     port: Number(process.env.PORT) || 5173,
     host: true,
-    proxy: { [proxied]: { target: backend, changeOrigin: false } },
+    proxy: { [proxied]: { target: backend, changeOrigin: false, ws: true } },
   },
   build: {
     chunkSizeWarningLimit: 1500,

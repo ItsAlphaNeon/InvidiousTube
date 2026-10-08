@@ -10,6 +10,7 @@ import { usePlayerSession } from '../stores/player';
 import { useIsMobile } from '../mobile/useIsMobile';
 import { useSettings } from '../stores/settings';
 import { useUI } from '../stores/ui';
+import { useInParty } from '../party/store';
 import { Player } from './Player';
 
 /** The single DOM node the player lives in; it is moved between the watch page and the miniplayer. */
@@ -107,6 +108,8 @@ export function PlayerHost() {
   const { data, error: detailsError } = useVideoDetails(videoId);
   const { next, onNext, onPrev } = useQueueNavigation();
   const mobile = useIsMobile();
+  // in a watch party the server decides what plays next (queue / host's settings)
+  const inParty = useInParty();
 
   useEffect(() => {
     setVideo(data && data.videoId === videoId ? data : null);
@@ -137,11 +140,11 @@ export function PlayerHost() {
       theater={theater}
       onToggleTheater={() => useSettings.getState().set({ theater: !useSettings.getState().theater })}
       onToggleMini={onToggleMini}
-      next={next}
-      onNext={onNext}
-      onPrev={onPrev}
+      next={inParty ? null : next}
+      onNext={inParty ? undefined : onNext}
+      onPrev={inParty ? undefined : onPrev}
       endScreen={endScreen}
-      inPlaylist={!!playlist}
+      inPlaylist={!!playlist && !inParty}
       detailsError={detailsError ? (detailsError as Error).message : null}
       variant={mobile ? 'mobile' : 'desktop'}
       onChapterClick={() => document.getElementById('description-chapters')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
