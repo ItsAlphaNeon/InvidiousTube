@@ -180,6 +180,15 @@ export function progressiveUrl(videoId: string, itag = 18): string {
   return `/companion/latest_version?id=${encodeURIComponent(videoId)}&itag=${itag}&local=true`;
 }
 
+/**
+ * Where to fetch a caption track, best first. Invidious' own /api/v1/captions currently returns
+ * empty files (YouTube now guards timedtext), while invidious-companion still serves the full
+ * track; the Invidious URL stays as a fallback for older companion versions.
+ */
+export function captionUrls(videoId: string, track: { label: string; url: string }): string[] {
+  return [`/companion/api/v1/captions/${encodeURIComponent(videoId)}?label=${encodeURIComponent(track.label)}`, track.url];
+}
+
 /** Turns an absolute googlevideo URL returned by the API into a companion-proxied path. */
 export function localizeStreamUrl(url: string): string {
   try {

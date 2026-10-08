@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as RMouseEvent } from 'react';
 import { formatDuration } from '../api/format';
-import { api } from '../api/invidious';
-import type { SponsorSegment, VideoDetails } from '../api/types';
+import { api, captionUrls } from '../api/invidious';
+import type { Caption, SponsorSegment, VideoDetails } from '../api/types';
 import type { CardVideo } from '../components/cards/model';
 import { useRecordHistory } from '../hooks/useAccount';
 import { getResumePosition, toLite } from '../stores/library';
@@ -42,6 +42,43 @@ const isTyping = (el: EventTarget | null) => {
   if (!t) return false;
   return t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable;
 };
+
+const isAuto = (c: Caption) => /auto-generated/i.test(c.label);
+
+/**
+ * The track to show when captions are turned on: the preferred language (a real track over an
+ * auto-generated one), then any real track, then English, then whatever there is.
+ */
+function pickCaptionTrack(tracks: Caption[], lang: string): number {
+  const base = (code: string) => (code || '').toLowerCase().split('-')[0];
+  const want = base(lang || 'en');
+  const order = [
+    (c: Caption) => base(c.language_code) === want && !isAuto(c),
+    (c: Caption) => base(c.language_code) === want,
+    (c: Caption) => !isAuto(c),
+    (c: Caption) => base(c.language_code) === 'en',
+  ];
+  for (const test of order) {
+    const i = tracks.findIndex(test);
+    if (i >= 0) return i;
+  }
+  return tracks.length ? 0 : -1;
+}
+
+/** Downloads and parses a caption track, trying companion first (see captionUrls). */
+async function loadCaptionCues(videoId: string, track: Caption): Promise<Cue[]> {
+  for (const url of captionUrls(videoId, track)) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const cues = parseVtt(await r.text());
+      if (cues.length) return isAuto(track) ? normalizeAutoCaptions(cues) : cues;
+    } catch {
+      /* try the next source */
+    }
+  }
+  return [];
+}
 
 function qualityBadge(h: number): QualityOption['badge'] {
   if (h >= 4320) return '8K';
@@ -344,10 +381,7 @@ export function Player(props: PlayerProps) {
     setCaptionId(null);
     setCaptionCues([]);
     if (!video || !captionTracks.length || !useSettings.getState().captions) return;
-    const lang = useSettings.getState().captionLang;
-    let idx = captionTracks.findIndex((c) => c.language_code === lang && !/auto-generated/i.test(c.label));
-    if (idx < 0) idx = captionTracks.findIndex((c) => c.language_code === lang);
-    if (idx < 0) idx = captionTracks.findIndex((c) => !/auto-generated/i.test(c.label));
+    const idx = pickCaptionTrack(captionTracks, useSettings.getState().captionLang);
     if (idx >= 0) setCaptionId(idx);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video?.videoId]);
@@ -359,14 +393,10 @@ export function Player(props: PlayerProps) {
     }
     let cancelled = false;
     const track = captionTracks[captionId];
-    fetch(track.url)
-      .then((r) => r.text())
-      .then((txt) => {
-        if (cancelled) return;
-        const cues = parseVtt(txt);
-        setCaptionCues(/auto-generated/i.test(track.label) ? normalizeAutoCaptions(cues) : cues);
-      })
-      .catch(() => setCaptionCues([]));
+    setCaptionCues([]);
+    loadCaptionCues(videoId, track).then((cues) => {
+      if (!cancelled) setCaptionCues(cues);
+    });
     return () => {
       cancelled = true;
     };
@@ -382,13 +412,7 @@ export function Player(props: PlayerProps) {
   const toggleCaptions = useCallback(() => {
     if (!captionTracks.length) return;
     setCaptionId((cur) => {
-      const next =
-        cur !== null
-          ? null
-          : Math.max(
-              0,
-              captionTracks.findIndex((c) => c.language_code === useSettings.getState().captionLang && !/auto-generated/i.test(c.label)),
-            );
+      const next = cur !== null ? null : pickCaptionTrack(captionTracks, useSettings.getState().captionLang);
       useSettings.getState().set({ captions: next !== null });
       if (next !== null) useSettings.getState().set({ captionLang: captionTracks[next].language_code });
       setBezel({ icon: 'subtitles', text: next !== null ? `${captionTracks[next].label}` : 'Subtitles/closed captions off', n: Date.now() });
